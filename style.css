@@ -1,57 +1,298 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Word Chain Game</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<!-- Game Mode Selector - Top Left -->
-<div id="mode-box">
-<label for="game-mode">🎮 Mode:</label>
-<select id="game-mode">
-<option value="computer">vs Computer</option>
-<option value="two-player">2 Players</option>
-</select>
-</div>
+body {
+ font-family: 'Segoe UI', sans-serif;
+background: linear-gradient(135deg, #667eea, #764ba2, #6dd5ed, #2193b0);
+background-size: 400% 400%;
+animation: gradientShift 12s ease infinite;
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 100vh;
+margin: 0;
+padding: 10px;
+box-sizing: border-box;
+}
+@keyframes gradientShift {
+ 0% { background-position: 0% 50%; }
+ 50% { background-position: 100% 50%; }
+ 100% { background-position: 0% 50%; }
+}
+.game-container {
+background: rgba(255, 255, 255, 0.95);
+padding: 20px;
+border-radius: 20px;
+box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+width: 100%;
+max-width: 450px;
+text-align: center;
+animation: fadeIn 1s ease;
+box-sizing: border-box;
+}
+@keyframes fadeIn {
+ from { transform: scale(0.9); opacity: 0; }
+ to { transform: scale(1); opacity: 1; }
+}
+h1 {
+color: #333;
+margin-bottom: 15px;
+text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+font-size: clamp(1.5rem, 5vw, 2rem);
+}
+.language-select {
+margin-bottom: 20px;
+}
+.language-select label {
+font-weight: bold;
+margin-right: 10px;
+font-size: clamp(0.9rem, 3vw, 1rem);
+display: inline-block;
+margin-bottom: 5px;
+}
+select {
+padding: 8px 12px;
+font-size: clamp(0.9rem, 3vw, 1rem);
+border-radius: 10px;
+border: 2px solid #4CAF50;
+background: #fff;
+transition: 0.3s;
+width: 100%;
+max-width: 200px;
+box-sizing: border-box;
+}
+select:hover {
+border-color: #2196f3;
+}
+#game-log {
+background: #f8f9fa;
+border-radius: 10px;
+height: 200px;
+overflow-y: auto;
+margin-bottom: 15px;
+padding: 12px;
+text-align: left;
+font-size: clamp(0.85rem, 3vw, 1rem);
+border: 2px solid #ddd;
+box-shadow: inset 0 0 8px rgba(0,0,0,0.1);
+box-sizing: border-box;
+word-wrap: break-word;
+}
+#game-log div {
+margin-bottom: 5px;
+padding: 4px 6px;
+border-radius: 6px;
+animation: popIn 0.3s ease;
+line-height: 1.4;
+}
+@keyframes popIn {
+ from { transform: translateY(8px); opacity: 0; }
+ to { transform: translateY(0); opacity: 1; }
+}
+input, button {
+padding: 10px;
+font-size: clamp(0.9rem, 3vw, 1rem);
+margin: 4px;
+border-radius: 10px;
+border: none;
+outline: none;
+box-sizing: border-box;
+}
+#player-input {
+width: calc(100% - 8px);
+max-width: 300px;
+border: 2px solid #ccc;
+transition: 0.3s;
+}
+#player-input:focus {
+border-color: #4CAF50;
+box-shadow: 0 0 8px rgba(76,175,80,0.6);
+}
+button {
+cursor: pointer;
+transition: all 0.3s ease;
+font-weight: bold;
+min-width: 120px;
+}
+#submit-btn {
+background-color: #4CAF50;
+color: white;
+}
+#submit-btn:hover {
+background-color: #45a049;
+transform: scale(1.05);
+}
+#give-up-btn {
+background-color: #f44336;
+color: white;
+}
+#give-up-btn:hover {
+background-color: #e53935;
+transform: scale(1.05);
+}
 
-<div class="game-container">
-<h1>🔤 Word Chain Game</h1>
-<!-- Language Selector -->
-<div class="language-select">
-<label for="language">🌍 Choose Language:</label>
-<select id="language">
-<option value="english">English</option>
-<option value="french">French</option>
-<option value="arabic">Arabic</option>
-</select>
-</div>
-<div id="game-log"></div>
-<input type="text" id="player-input" placeholder="Type your word..." />
-<button id="submit-btn">Submit</button>
-<button id="give-up-btn">Reset Game</button>
-</div>
-<!-- Toggle button -->
-<button id="toggle-info">ℹ️</button>
-<!-- Info panel -->
-<div id="info-box">
-<h3>Word Chain Game Info</h3>
-<p>Welcome to the Word Chain Game!</p>
-<ul>
-<li>Type a word in your chosen language.</li>
-<li>Each word must start with the last letter of the previous word.</li>
-<li>The colors can be written TWICE!</li>
-<li>There are some secret words that can be written TWICE!🤫</li>
-<li>Press "Enter" or "Submit" to play.</li>
-<li>Click "Reset Game" to start over.</li>
-<li><strong>vs Computer:</strong> Play against the computer.</li>
-<li><strong>2 Players:</strong> Take turns with a friend. The game only checks if words are valid!</li>
-</ul>
-</div>
-<footer class="signature">
- by Rayan Kartobi.
-</footer>
-<script src="script.js"></script>
-</body>
-</html>
+/* Game Mode Box - Top Left */
+#mode-box {
+position: fixed;
+top: 15px;
+left: 15px;
+z-index: 1000;
+background: rgba(255,255,255,0.95);
+backdrop-filter: blur(10px);
+border-radius: 12px;
+box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+padding: 8px 12px;
+display: flex;
+align-items: center;
+gap: 6px;
+transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#mode-box:hover {
+transform: translateY(-2px);
+box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+#mode-box label {
+font-weight: bold;
+font-size: 0.85rem;
+color: #333;
+margin: 0;
+white-space: nowrap;
+}
+
+#mode-box select {
+padding: 5px 8px;
+font-size: 0.85rem;
+border-radius: 8px;
+border: 2px solid #667eea;
+background: #fff;
+transition: 0.3s;
+cursor: pointer;
+outline: none;
+}
+
+#mode-box select:hover {
+border-color: #764ba2;
+}
+
+#mode-box select:focus {
+border-color: #2193b0;
+box-shadow: 0 0 8px rgba(33, 147, 176, 0.4);
+}
+
+/* Toggle button */
+#toggle-info {
+position: fixed;
+top: 15px;
+right: 15px;
+z-index: 1001;
+background: rgba(255,255,255,0.9);
+border: none;
+padding: 6px 10px;
+border-radius: 50%;
+font-size: 0.95rem;
+cursor: pointer;
+box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+transition: transform 0.2s, background 0.2s;
+}
+#toggle-info:hover {
+transform: scale(1.1);
+background: rgba(255,255,255,1);
+}
+/* Info panel */
+#info-box {
+position: fixed;
+top: 60px;
+right: 10px;
+width: calc(100vw - 40px);
+max-width: 320px;
+background: rgba(255,255,255,0.95);
+backdrop-filter: blur(10px);
+border-radius: 20px;
+box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+padding: 15px;
+font-size: clamp(0.85rem, 3vw, 0.95rem);
+color: #333;
+opacity: 0;
+pointer-events: none;
+transform: translateY(-20px);
+transition: opacity 0.3s ease, transform 0.3s ease;
+z-index: 1000;
+max-height: 80vh;
+overflow-y: auto;
+box-sizing: border-box;
+}
+#info-box.show {
+opacity: 1;
+pointer-events: auto;
+transform: translateY(0);
+}
+#info-box h3 {
+margin-top: 0;
+margin-bottom: 10px;
+font-size: clamp(1rem, 4vw, 1.1rem);
+color: #222;
+}
+#info-box ul {
+padding-left: 20px;
+margin: 0;
+text-align: left;
+}
+#info-box li {
+margin-bottom: 8px;
+line-height: 1.4;
+}
+.signature {
+position: fixed;
+bottom: 10px;
+transform: translateX(-50%), translateY(-50%);
+font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+color: #fff;
+opacity: 0.8;
+font-style: italic;
+animation: fadeIn 3s ease;
+text-align: center;
+padding: 0 10px;
+}
+
+@media (max-width: 600px) {
+  /* ... other styles ... */
+  
+  #mode-box {
+    top: 10px;
+    left: 10px;
+    padding: 6px 10px;
+    gap: 5px;
+    border-radius: 10px;
+  }
+  
+  #mode-box label {
+    font-size: 0.75rem;
+  }
+  
+  #mode-box select {
+    font-size: 0.75rem;
+    padding: 4px 6px;
+  }
+  
+  /* ... other styles ... */
+}
+
+/* Very small screens */
+@media (max-width: 400px) {
+  /* ... other styles ... */
+  
+  #mode-box {
+    padding: 5px 8px;
+    gap: 4px;
+  }
+  
+  #mode-box label {
+    font-size: 0.7rem;
+  }
+  
+  #mode-box select {
+    font-size: 0.7rem;
+    padding: 3px 5px;
+  }
+  
+  /* ... other styles ... */
+}
