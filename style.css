@@ -296,3 +296,22 @@ padding: 0 10px;
   
   /* ... other styles ... */
 }
+
+
+.points-display {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.hint-btn {
+  background-color: #FF9800;
+  color: white;
+}
+
+.hint-btn:hover {
+  background-color: #F57C00;
+  transform: scale(1.05);
+}
