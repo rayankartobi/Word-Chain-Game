@@ -355,7 +355,7 @@ submitBtn.addEventListener('click', () => {
 
   // Check for master code (only in computer mode at start)
   if (gameMode === 'computer' && playerWord === MASTER_CODE && usedWords.length === 0) {
-    appendToLog("Hello Master Rayan Kartobi", 'computer');
+    appendToLog("Hello Master Rayan Kartobi!🫡", 'computer');
     input.value = '';
     return;
   }
