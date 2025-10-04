@@ -304,8 +304,8 @@ padding: 0 10px;
   #toggle-info {
     top: 10px;
     right: 10px;
-    padding: 6px 10px;
-    font-size: 1rem;
+    padding: 5px 8px;
+    font-size: 0.85rem;
   }
   
   #info-box {
@@ -356,7 +356,7 @@ padding: 0 10px;
   }
   
   #toggle-info {
-    padding: 5px 9px;
-    font-size: 0.9rem;
+    padding: 4px 7px;
+    font-size: 0.75rem;
   }
 }
