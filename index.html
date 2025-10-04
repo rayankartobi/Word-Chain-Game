@@ -27,10 +27,15 @@
 <option value="arabic">Arabic</option>
 </select>
 </div>
+<!-- Points Display -->
+<div id="points-display" class="points-display">Points: 0</div>
 <div id="game-log"></div>
 <input type="text" id="player-input" placeholder="Type your word..." />
+<div class="button-container">
 <button id="submit-btn">Submit</button>
+<button id="hint-btn" class="hint-btn">💡 Hint (3pts)</button>
 <button id="give-up-btn">Reset Game</button>
+</div>
 </div>
 <!-- Toggle button -->
 <button id="toggle-info">ℹ️</button>
@@ -45,7 +50,7 @@
 <li>There are some secret words that can be written TWICE!🤫</li>
 <li>Press "Enter" or "Submit" to play.</li>
 <li>Click "Reset Game" to start over.</li>
-<li><strong>vs Computer:</strong> Play against the computer.</li>
+<li><strong>vs Computer:</strong> Earn 1 point per word. Spend 3 points for a hint!</li>
 <li><strong>2 Players:</strong> Take turns with a friend. The game only checks if words are valid!</li>
 </ul>
 </div>
