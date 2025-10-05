@@ -484,8 +484,8 @@ function resetGame() {
   expectedStartLetter = null;
   usedWords = [];
   currentPlayer = 1;
-  playerPoints = 0;
-  wordsPlayedCount = 0;
+  wordsPlayedCount = 0; // Reset word count to start fresh progress
+  // Keep playerPoints - don't reset
   updatePointsDisplay();
   updateHintButtonVisibility();
   gameLog.innerHTML = '';
@@ -494,7 +494,7 @@ function resetGame() {
     appendSystemLog("🔁 Game reset. Player 1 starts with any word.", '#2196F3');
     input.placeholder = "Player 1's turn - start with any word";
   } else {
-    appendSystemLog("🔁 Game reset. Start with any word. Play 5 words to earn 1 point!", '#2196F3');
+    appendSystemLog("🔁 Game reset. Your points are saved! Start with any word.", '#2196F3');
     input.placeholder = "Type your word...";
   }
 }
