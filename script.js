@@ -13,9 +13,10 @@ let gameMode = 'computer';
 let currentPlayer = 1;
 let currentLanguage = 'english';
 let playerPoints = 0;
-let wordsPlayedCount = 0; // Track words played
-const WORDS_PER_POINT = 5;
+let wordsPlayedCount = 0;
+const WORDS_FOR_POINT = 5;
 const HINT_COST = 3;
+const MASTER_CODE_POINTS = 3;
 // Master code
 const MASTER_CODE = '2300';
 
@@ -259,6 +260,7 @@ const wordBanks = {
 
 
 
+
 // Get random word
 function getRandomWord(startLetter = null) {
   const filtered = startLetter 
@@ -274,22 +276,23 @@ function getRandomWord(startLetter = null) {
 // Update points display
 function updatePointsDisplay() {
   const pointsDisplay = document.getElementById('points-display');
-  const hintBtn = document.getElementById('hint-btn');
-  
-  if (gameMode === 'computer') {
-    if (pointsDisplay) {
-      const wordsUntilPoint = WORDS_PER_POINT - (wordsPlayedCount % WORDS_PER_POINT);
-      pointsDisplay.textContent = `Points: ${playerPoints} | Words until next point: ${wordsUntilPoint}`;
+  if (pointsDisplay) {
+    if (gameMode === 'computer') {
       pointsDisplay.style.display = 'block';
-    }
-    if (hintBtn) {
-      hintBtn.style.display = 'inline-block';
-    }
-  } else {
-    if (pointsDisplay) {
+      pointsDisplay.textContent = `Points: ${playerPoints} | Words: ${wordsPlayedCount}/${WORDS_FOR_POINT}`;
+    } else {
       pointsDisplay.style.display = 'none';
     }
-    if (hintBtn) {
+  }
+}
+
+// Update hint button visibility
+function updateHintButtonVisibility() {
+  const hintBtn = document.getElementById('hint-btn');
+  if (hintBtn) {
+    if (gameMode === 'computer') {
+      hintBtn.style.display = 'inline-block';
+    } else {
       hintBtn.style.display = 'none';
     }
   }
@@ -311,6 +314,16 @@ function appendToLog(text, from = 'player') {
   gameLog.scrollTop = gameLog.scrollHeight;
 }
 
+// Add system message with color
+function appendSystemLog(text, color = '#FF6B6B') {
+  const div = document.createElement('div');
+  div.textContent = text;
+  div.style.color = color;
+  div.style.fontWeight = 'bold';
+  gameLog.appendChild(div);
+  gameLog.scrollTop = gameLog.scrollHeight;
+}
+
 // Check if word is a Muhammad variant
 function isMuhammadWord(word) {
   return muhammadWords[currentLanguage].includes(word.toLowerCase());
@@ -318,13 +331,17 @@ function isMuhammadWord(word) {
 
 // Get hint word
 function getHintWord() {
+  if (gameMode !== 'computer') {
+    return; // Only work in computer mode
+  }
+  
   if (playerPoints < HINT_COST) {
-    appendToLog(`❌ Need ${HINT_COST} points for a hint. You have ${playerPoints} points.`, 'system');
+    appendSystemLog(`❌ Need ${HINT_COST} points for a hint. You have ${playerPoints} points.`, '#FF6B6B');
     return;
   }
   
   if (!expectedStartLetter) {
-    appendToLog(`❌ No letter to hint for yet. Play a word first!`, 'system');
+    appendSystemLog(`❌ No letter to hint for yet. Play a word first!`, '#FF6B6B');
     return;
   }
   
@@ -333,19 +350,20 @@ function getHintWord() {
   );
   
   if (availableWords.length === 0) {
-    appendToLog(`❌ No words available starting with "${expectedStartLetter}"`, 'system');
+    appendSystemLog(`❌ No words available starting with "${expectedStartLetter}"`, '#FF6B6B');
     return;
   }
   
   const hintWord = availableWords[Math.floor(Math.random() * availableWords.length)];
   playerPoints -= HINT_COST;
   updatePointsDisplay();
-  appendToLog(`💡 Hint: "${hintWord}" (Cost: ${HINT_COST} points)`, 'system');
+  appendSystemLog(`💡 Hint: "${hintWord}" (Cost: ${HINT_COST} points)`, '#9C27B0');
 }
 
 // Game mode change handler
 gameModeSelect.addEventListener('change', () => {
   gameMode = gameModeSelect.value;
+  updateHintButtonVisibility();
   resetGame();
 });
 
@@ -356,27 +374,30 @@ submitBtn.addEventListener('click', () => {
   // Check for master code (only in computer mode at start)
   if (gameMode === 'computer' && playerWord === MASTER_CODE && usedWords.length === 0) {
     appendToLog("Hello Master Rayan Kartobi!🫡", 'computer');
+    playerPoints += MASTER_CODE_POINTS;
+    updatePointsDisplay();
+    appendSystemLog(`🎁 Bonus: +${MASTER_CODE_POINTS} points awarded!`, '#4CAF50');
     input.value = '';
     return;
   }
 
   // Check if word exists in current language list
   if (!currentWordList.includes(playerWord)) {
-    appendToLog(`❌ "${playerWord}" is not in dictionary`, gameMode === 'two-player' ? currentPlayer : 'player');
+    appendSystemLog(`❌ "${playerWord}" is not in dictionary`, '#FF6B6B');
     input.value = '';
     return;
   }
 
   // Check if correct starting letter
   if (expectedStartLetter && playerWord[0] !== expectedStartLetter) {
-    appendToLog(`❌ Word must start with "${expectedStartLetter}"`, gameMode === 'two-player' ? currentPlayer : 'player');
+    appendSystemLog(`❌ Word must start with "${expectedStartLetter}"`, '#FF6B6B');
     input.value = '';
     return;
   }
 
   // Check if word was already used
   if (usedWords.includes(playerWord)) {
-    appendToLog(`❌ "${playerWord}" was already used`, gameMode === 'two-player' ? currentPlayer : 'player');
+    appendSystemLog(`❌ "${playerWord}" was already used`, '#FF6B6B');
     input.value = '';
     return;
   }
@@ -397,10 +418,11 @@ submitBtn.addEventListener('click', () => {
     usedWords.push(playerWord);
     wordsPlayedCount++;
     
-    // Award point every 5 words
-    if (wordsPlayedCount % WORDS_PER_POINT === 0) {
+    // Give 1 point after every 5 valid words
+    if (wordsPlayedCount >= WORDS_FOR_POINT) {
       playerPoints++;
-      appendToLog(`🎉 +1 point! Total: ${playerPoints} points`, 'system');
+      wordsPlayedCount = 0;
+      appendSystemLog(`🏆 5 words completed! +1 point awarded!`, '#FFD700');
     }
     
     updatePointsDisplay();
@@ -426,7 +448,7 @@ submitBtn.addEventListener('click', () => {
     let computerWord = availableWords.length > 0 ? availableWords[Math.floor(Math.random() * availableWords.length)] : null;
 
     if (!computerWord) {
-      appendToLog(`🎉 You win! I can't find a new word starting with "${lastLetter}".`, 'computer');
+      appendSystemLog(`🎉 You win! I can't find a new word starting with "${lastLetter}".`, '#4CAF50');
       input.disabled = true;
       submitBtn.disabled = true;
       return;
@@ -465,13 +487,14 @@ function resetGame() {
   playerPoints = 0;
   wordsPlayedCount = 0;
   updatePointsDisplay();
+  updateHintButtonVisibility();
   gameLog.innerHTML = '';
   
   if (gameMode === 'two-player') {
-    appendToLog("🔁 Game reset. Player 1 starts with any word.", 'system');
+    appendSystemLog("🔁 Game reset. Player 1 starts with any word.", '#2196F3');
     input.placeholder = "Player 1's turn - start with any word";
   } else {
-    appendToLog("🔁 Game reset. Start with any word. Earn 1 point every 5 words!", 'system');
+    appendSystemLog("🔁 Game reset. Start with any word. Play 5 words to earn 1 point!", '#2196F3');
     input.placeholder = "Type your word...";
   }
 }
@@ -514,7 +537,7 @@ const infoTexts = {
       <li>Each word must start with the last letter of the previous word.</li>
       <li>Press "Enter" or "Submit" to play.</li>
       <li>Click "Reset Game" to start over.</li>
-      <li><strong>vs Computer:</strong> Earn 1 point every ${WORDS_PER_POINT} words. Spend ${HINT_COST} points for a hint!</li>
+      <li><strong>vs Computer:</strong> Earn 1 point every ${WORDS_FOR_POINT} words. Spend ${HINT_COST} points for a hint!</li>
       <li><strong>2 Players:</strong> Take turns with a friend. The game only validates words!</li>
       <li><strong>Special:</strong> Say "Muhammad" and receive a blessing!</li>
     </ul>
@@ -529,7 +552,7 @@ const infoTexts = {
       <li>Il y a quelques mots secrets qui peuvent être écrits DEUX FOIS!</li>
       <li>Appuyez sur "Entrée" ou "Submit" pour jouer.</li>
       <li>Cliquez sur "Reset Game" pour réinitialiser.</li>
-      <li><strong>vs Computer:</strong> Gagnez 1 point tous les ${WORDS_PER_POINT} mots. Dépensez ${HINT_COST} points pour un indice!</li>
+      <li><strong>vs Computer:</strong> Gagnez 1 point tous les ${WORDS_FOR_POINT} mots. Dépensez ${HINT_COST} points pour un indice!</li>
       <li><strong>2 Joueurs:</strong> Jouez à tour de rôle. Le jeu valide seulement les mots!</li>
       <li><strong>Spécial:</strong> Dites "Muhammad" et recevez une bénédiction!</li>
     </ul>
@@ -544,7 +567,7 @@ const infoTexts = {
       <li>هناك بعض الكلمات السرية التي يمكن كتابتها مرتين! 🤫</li>
       <li>يمكن كتابة الألوان مرتين!</li>
       <li>اضغط "Reset Game" لإعادة ضبط اللعبة.</li>
-      <li><strong>ضد الكمبيوتر:</strong> احصل على 1 نقطة كل ${WORDS_PER_POINT} كلمات. أنفق ${HINT_COST} نقاط للحصول على تلميح!</li>
+      <li><strong>ضد الكمبيوتر:</strong> احصل على نقطة واحدة كل ${WORDS_FOR_POINT} كلمات. أنفق ${HINT_COST} نقاط للحصول على تلميح!</li>
       <li><strong>لاعبان:</strong> العب مع صديق. اللعبة تتحقق من الكلمات فقط!</li>
       <li><strong>خاص:</strong> قل "محمد" واحصل على بركة!</li>
     </ul>
@@ -559,3 +582,4 @@ languageSelect.addEventListener('change', () => {
 
 // Initialize
 setLanguage('english');
+updateHintButtonVisibility();
