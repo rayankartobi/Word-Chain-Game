@@ -6,15 +6,6 @@ const languageSelect = document.getElementById('language');
 const gameModeSelect = document.getElementById('game-mode');
 const infoBox = document.getElementById('info-box');
 
-// Online multiplayer elements
-const onlineControls = document.getElementById('online-controls');
-const createRoomBtn = document.getElementById('create-room-btn');
-const joinRoomBtn = document.getElementById('join-room-btn');
-const joinCodeInput = document.getElementById('join-code-input');
-const roomCodeDisplay = document.getElementById('room-code-display');
-const roomCodeElement = document.getElementById('room-code');
-const onlineStatus = document.getElementById('online-status');
-
 let expectedStartLetter = null;
 let currentWordList = [];
 let usedWords = [];
@@ -25,15 +16,11 @@ let playerPoints = 0;
 let wordsPlayedCount = 0;
 const WORDS_FOR_POINT = 5;
 const HINT_COST = 3;
-const MASTER_CODE_POINTS = 5;
+const MASTER_CODE_POINTS = 3;
+// Master code
+const MASTER_CODE = '2300';
 
-// Online multiplayer state
-let currentRoomCode = null;
-let isHost = false;
-let playerNumber = 0;
-let roomRef = null;
-
-// Special Muhammad words
+// Special Muhammad words for each language
 const muhammadWords = {
   english: ['muhammad', 'muhamad', 'mohamad', 'mohammad', 'mohamed', 'mohammed', 'muhammed', 'muhamed'],
   french: ['muhammad', 'muhamad', 'mohamad', 'mohammad', 'mohamed', 'mohammed', 'muhammed', 'muhamed'],
@@ -45,8 +32,6 @@ const blessings = {
   french: 'que la paix soit sur lui',
   arabic: 'صلى الله عليه و سلم'
 };
-
-const MASTER_CODE = '2300';
 
 // Your existing word banks
 const wordBanks = {
@@ -914,169 +899,6 @@ const wordBanks = {
 
 
 
-// Generate random 6-digit room code
-function generateRoomCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-
-// Update online status display
-function updateOnlineStatus(message, color = '#2196F3') {
-  onlineStatus.textContent = message;
-  onlineStatus.style.backgroundColor = color;
-  onlineStatus.style.color = 'white';
-  onlineStatus.style.display = 'block';
-}
-
-// Create room
-createRoomBtn.addEventListener('click', async () => {
-  const roomCode = generateRoomCode();
-  currentRoomCode = roomCode;
-  isHost = true;
-  playerNumber = 1;
-  
-  roomRef = window.database.ref('rooms/' + roomCode);
-  
-  await roomRef.set({
-    hostId: Date.now(),
-    language: currentLanguage,
-    currentPlayer: 1,
-    expectedStartLetter: null,
-    usedWords: [],
-    createdAt: Date.now()
-  });
-  
-  roomCodeElement.textContent = roomCode;
-  roomCodeDisplay.style.display = 'block';
-  createRoomBtn.disabled = true;
-  joinCodeInput.disabled = true;
-  joinRoomBtn.disabled = true;
-  
-  updateOnlineStatus('Waiting for player 2...', '#FF9800');
-  
-  // Listen for player 2 joining
-  roomRef.child('player2Id').on('value', (snapshot) => {
-    if (snapshot.val()) {
-      updateOnlineStatus('Player 2 joined! Game started!', '#4CAF50');
-      startOnlineGame();
-    }
-  });
-  
-  // Listen for moves
-  roomRef.child('lastMove').on('value', handleOpponentMove);
-});
-
-// Join room
-joinRoomBtn.addEventListener('click', async () => {
-  const code = joinCodeInput.value.trim().toUpperCase();
-  if (!code || code.length !== 6) {
-    updateOnlineStatus('Invalid room code!', '#FF6B6B');
-    return;
-  }
-  
-  currentRoomCode = code;
-  isHost = false;
-  playerNumber = 2;
-  
-  roomRef = window.database.ref('rooms/' + code);
-  
-  const snapshot = await roomRef.once('value');
-  if (!snapshot.exists()) {
-    updateOnlineStatus('Room not found!', '#FF6B6B');
-    return;
-  }
-  
-  await roomRef.update({
-    player2Id: Date.now()
-  });
-  
-  updateOnlineStatus('Joined! Waiting for Player 1...', '#4CAF50');
-  createRoomBtn.disabled = true;
-  joinCodeInput.disabled = true;
-  joinRoomBtn.disabled = true;
-  
-  startOnlineGame();
-  
-  // Listen for moves
-  roomRef.child('lastMove').on('value', handleOpponentMove);
-});
-
-// Start online game
-function startOnlineGame() {
-  resetGame();
-  input.disabled = playerNumber !== 1;
-  submitBtn.disabled = playerNumber !== 1;
-  
-  if (playerNumber === 1) {
-    appendSystemLog('Your turn! Start with any word.', '#4CAF50');
-  } else {
-    appendSystemLog('Player 1 starts. Wait for their move...', '#2196F3');
-  }
-}
-
-// Handle opponent's move
-function handleOpponentMove(snapshot) {
-  if (!snapshot.exists()) return;
-  
-  const move = snapshot.val();
-  if (move.playerNumber === playerNumber) return; // Ignore own moves
-  
-  const word = move.word;
-  appendToLog(word, move.playerNumber);
-  usedWords.push(word);
-  expectedStartLetter = word[word.length - 1];
-  
-  // Enable input for current player
-  if (move.playerNumber !== playerNumber) {
-    input.disabled = false;
-    submitBtn.disabled = false;
-    input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
-  }
-}
-
-// Send move to Firebase
-async function sendMove(word) {
-  if (!roomRef) return;
-  
-  await roomRef.child('lastMove').set({
-    word: word,
-    playerNumber: playerNumber,
-    timestamp: Date.now()
-  });
-  
-  await roomRef.child('usedWords').set(usedWords);
-  await roomRef.child('expectedStartLetter').set(expectedStartLetter);
-  
-  // Disable input until opponent plays
-  input.disabled = true;
-  submitBtn.disabled = true;
-  appendSystemLog('Waiting for opponent...', '#2196F3');
-}
-
-// Game mode change
-gameModeSelect.addEventListener('change', () => {
-  gameMode = gameModeSelect.value;
-  
-  if (gameMode === 'online') {
-    onlineControls.style.display = 'block';
-    // Disconnect from previous room
-    if (roomRef) {
-      roomRef.off();
-      roomRef = null;
-    }
-    currentRoomCode = null;
-    createRoomBtn.disabled = false;
-    joinCodeInput.disabled = false;
-    joinRoomBtn.disabled = false;
-    roomCodeDisplay.style.display = 'none';
-    onlineStatus.style.display = 'none';
-  } else {
-    onlineControls.style.display = 'none';
-  }
-  
-  updateHintButtonVisibility();
-  resetGame();
-});
-
 // Get random word
 function getRandomWord(startLetter = null) {
   const filtered = startLetter 
@@ -1106,7 +928,11 @@ function updatePointsDisplay() {
 function updateHintButtonVisibility() {
   const hintBtn = document.getElementById('hint-btn');
   if (hintBtn) {
-    hintBtn.style.display = gameMode === 'computer' ? 'inline-block' : 'none';
+    if (gameMode === 'computer') {
+      hintBtn.style.display = 'inline-block';
+    } else {
+      hintBtn.style.display = 'none';
+    }
   }
 }
 
@@ -1114,7 +940,7 @@ function updateHintButtonVisibility() {
 function appendToLog(text, from = 'player') {
   const div = document.createElement('div');
   
-  if (gameMode === 'two-player' || gameMode === 'online') {
+  if (gameMode === 'two-player') {
     div.textContent = `Player ${from}: ${text}`;
     div.style.color = from === 1 ? '#0077cc' : '#cc7700';
   } else {
@@ -1136,14 +962,16 @@ function appendSystemLog(text, color = '#FF6B6B') {
   gameLog.scrollTop = gameLog.scrollHeight;
 }
 
-// Check if word is Muhammad variant
+// Check if word is a Muhammad variant
 function isMuhammadWord(word) {
   return muhammadWords[currentLanguage].includes(word.toLowerCase());
 }
 
 // Get hint word
 function getHintWord() {
-  if (gameMode !== 'computer') return;
+  if (gameMode !== 'computer') {
+    return; // Only work in computer mode
+  }
   
   if (playerPoints < HINT_COST) {
     appendSystemLog(`❌ Need ${HINT_COST} points for a hint. You have ${playerPoints} points.`, '#FF6B6B');
@@ -1170,14 +998,20 @@ function getHintWord() {
   appendSystemLog(`💡 Hint: "${hintWord}" (Cost: ${HINT_COST} points)`, '#9C27B0');
 }
 
-// Submit button
+// Game mode change handler
+gameModeSelect.addEventListener('change', () => {
+  gameMode = gameModeSelect.value;
+  updateHintButtonVisibility();
+  resetGame();
+});
+
 submitBtn.addEventListener('click', () => {
   const playerWord = input.value.trim().toLowerCase();
   if (!playerWord) return;
 
-  // Master code (computer mode only)
+  // Check for master code (only in computer mode at start)
   if (gameMode === 'computer' && playerWord === MASTER_CODE && usedWords.length === 0) {
-    appendToLog("Hello Master Rayan Kartobi", 'computer');
+    appendToLog("Hello Master Rayan Kartobi!🫡", 'computer');
     playerPoints += MASTER_CODE_POINTS;
     updatePointsDisplay();
     appendSystemLog(`🎁 Bonus: +${MASTER_CODE_POINTS} points awarded!`, '#4CAF50');
@@ -1185,53 +1019,53 @@ submitBtn.addEventListener('click', () => {
     return;
   }
 
-  // Validate word
+  // Check if word exists in current language list
   if (!currentWordList.includes(playerWord)) {
     appendSystemLog(`❌ "${playerWord}" is not in dictionary`, '#FF6B6B');
     input.value = '';
     return;
   }
 
+  // Check if correct starting letter
   if (expectedStartLetter && playerWord[0] !== expectedStartLetter) {
     appendSystemLog(`❌ Word must start with "${expectedStartLetter}"`, '#FF6B6B');
     input.value = '';
     return;
   }
 
+  // Check if word was already used
   if (usedWords.includes(playerWord)) {
     appendSystemLog(`❌ "${playerWord}" was already used`, '#FF6B6B');
     input.value = '';
     return;
   }
 
-  // Handle different game modes
-  if (gameMode === 'online') {
-    appendToLog(playerWord, playerNumber);
-    usedWords.push(playerWord);
-    expectedStartLetter = playerWord[playerWord.length - 1];
-    sendMove(playerWord);
-    
-  } else if (gameMode === 'two-player') {
+  // Word is valid
+  if (gameMode === 'two-player') {
     appendToLog(playerWord, currentPlayer);
     usedWords.push(playerWord);
-    expectedStartLetter = playerWord[playerWord.length - 1];
+    const lastLetter = playerWord[playerWord.length - 1];
+    expectedStartLetter = lastLetter;
+    
     currentPlayer = currentPlayer === 1 ? 2 : 1;
     input.placeholder = `Player ${currentPlayer}'s turn - start with "${expectedStartLetter}"`;
     
   } else {
-    // Computer mode
+    // Computer mode - count words and award points every 5 words
     appendToLog(playerWord, 'player');
     usedWords.push(playerWord);
     wordsPlayedCount++;
     
+    // Give 1 point after every 5 valid words
     if (wordsPlayedCount >= WORDS_FOR_POINT) {
       playerPoints++;
       wordsPlayedCount = 0;
-      appendSystemLog(`🎯 5 words completed! +1 point awarded!`, '#FFD700');
+      appendSystemLog(`🏆 5 words completed! +1 point awarded!`, '#FFD700');
     }
     
     updatePointsDisplay();
     
+    // Check if player said Muhammad
     if (isMuhammadWord(playerWord)) {
       setTimeout(() => {
         const blessing = blessings[currentLanguage];
@@ -1244,6 +1078,8 @@ submitBtn.addEventListener('click', () => {
     }
     
     const lastLetter = playerWord[playerWord.length - 1];
+
+    // Computer responds
     const availableWords = currentWordList.filter(
       w => w[0] === lastLetter && !usedWords.includes(w)
     );
@@ -1260,6 +1096,7 @@ submitBtn.addEventListener('click', () => {
       appendToLog(computerWord, 'computer');
       usedWords.push(computerWord);
       
+      // Check if computer said Muhammad
       if (isMuhammadWord(computerWord)) {
         setTimeout(() => {
           const blessing = blessings[currentLanguage];
@@ -1277,7 +1114,7 @@ submitBtn.addEventListener('click', () => {
   input.value = '';
 });
 
-// Reset game
+// Reset
 function resetGame() {
   input.value = '';
   input.disabled = false;
@@ -1285,16 +1122,13 @@ function resetGame() {
   expectedStartLetter = null;
   usedWords = [];
   currentPlayer = 1;
-  wordsPlayedCount = 0;
+  wordsPlayedCount = 0; // Reset word count to start fresh progress
+  // Keep playerPoints - don't reset
   updatePointsDisplay();
   updateHintButtonVisibility();
   gameLog.innerHTML = '';
   
-  if (gameMode === 'online') {
-    if (currentRoomCode) {
-      appendSystemLog(`🌐 Online game in room ${currentRoomCode}`, '#2196F3');
-    }
-  } else if (gameMode === 'two-player') {
+  if (gameMode === 'two-player') {
     appendSystemLog("🔁 Game reset. Player 1 starts with any word.", '#2196F3');
     input.placeholder = "Player 1's turn - start with any word";
   } else {
@@ -1303,32 +1137,35 @@ function resetGame() {
   }
 }
 
-// Set language
+// Language change
 function setLanguage(lang) {
   currentLanguage = lang;
   currentWordList = wordBanks[lang];
   resetGame();
 }
 
-// Event listeners
 giveUpBtn.addEventListener('click', resetGame);
 
+// Hint button handler
 const hintBtn = document.getElementById('hint-btn');
 if (hintBtn) {
   hintBtn.addEventListener('click', getHintWord);
 }
 
+// Enter key support
 input.addEventListener('keypress', function(e) {
   if (e.key === 'Enter') {
     submitBtn.click();
   }
 });
 
+// Info toggle
 const toggleBtn = document.getElementById('toggle-info');
 toggleBtn.addEventListener('click', () => {
   infoBox.classList.toggle('show');
 });
 
+// Info text updates
 const infoTexts = {
   english: `
     <h3>Word Chain Game Info</h3>
@@ -1336,28 +1173,39 @@ const infoTexts = {
     <ul>
       <li>Type a word in English.</li>
       <li>Each word must start with the last letter of the previous word.</li>
+      <li>Press "Enter" or "Submit" to play.</li>
+      <li>Click "Reset Game" to start over.</li>
       <li><strong>vs Computer:</strong> Earn 1 point every ${WORDS_FOR_POINT} words. Spend ${HINT_COST} points for a hint!</li>
-      <li><strong>2 Players (Local):</strong> Take turns on the same device!</li>
-      <li><strong>Online Multiplayer:</strong> Create or join a room with a 6-digit code!</li>
+      <li><strong>2 Players:</strong> Take turns with a friend. The game only validates words!</li>
       <li><strong>Special:</strong> Say "Muhammad" and receive a blessing!</li>
     </ul>
   `,
   french: `
     <h3>Info du Jeu de Chaîne de Mots</h3>
-    <p>Bienvenue!</p>
+    <p>Bienvenue au Jeu de Chaîne de Mots !</p>
     <ul>
       <li>Tapez un mot en français.</li>
-      <li><strong>vs Ordinateur:</strong> 1 point tous les ${WORDS_FOR_POINT} mots!</li>
-      <li><strong>2 Joueurs:</strong> Jouez à tour de rôle!</li>
-      <li><strong>En ligne:</strong> Créez ou rejoignez une salle!</li>
+      <li>Chaque mot doit commencer par la dernière lettre du mot précédent.</li>
+      <li>Il y a quelques mots secrets qui peuvent être écrits DEUX FOIS!</li>
+      <li>Appuyez sur "Entrée" ou "Submit" pour jouer.</li>
+      <li>Cliquez sur "Reset Game" pour réinitialiser.</li>
+      <li><strong>vs Computer:</strong> Gagnez 1 point tous les ${WORDS_FOR_POINT} mots. Dépensez ${HINT_COST} points pour un indice!</li>
+      <li><strong>2 Joueurs:</strong> Jouez à tour de rôle. Le jeu valide seulement les mots!</li>
+      <li><strong>Spécial:</strong> Dites "Muhammad" et recevez une bénédiction!</li>
     </ul>
   `,
   arabic: `
-    <h3>معلومات اللعبة</h3>
+    <h3>معلومات عن لعبة سلسلة الكلمات</h3>
+    <p>مرحبًا بك في لعبة سلسلة الكلمات!</p>
     <ul>
-      <li><strong>ضد الكمبيوتر:</strong> نقطة كل ${WORDS_FOR_POINT} كلمات!</li>
-      <li><strong>لاعبان:</strong> العب مع صديق!</li>
-      <li><strong>عبر الإنترنت:</strong> أنشئ غرفة أو انضم!</li>
+      <li>اكتب كلمة باللغة العربية.</li>
+      <li>يجب أن يبدأ كل كلمة بالحرف الأخير من الكلمة السابقة.</li>
+      <li>اضغط "Enter" أو "Submit" للعب.</li>
+      <li>هناك بعض الكلمات السرية التي يمكن كتابتها مرتين! 🤫</li>
+      <li>اضغط "Reset Game" لإعادة ضبط اللعبة.</li>
+      <li><strong>ضد الكمبيوتر:</strong> احصل على نقطة واحدة كل ${WORDS_FOR_POINT} كلمات. أنفق ${HINT_COST} نقاط للحصول على تلميح!</li>
+      <li><strong>لاعبان:</strong> العب مع صديق. اللعبة تتحقق من الكلمات فقط!</li>
+      <li><strong>خاص:</strong> قل "محمد" واحصل على بركة!</li>
     </ul>
   `
 };
