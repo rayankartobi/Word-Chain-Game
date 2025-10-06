@@ -6,6 +6,15 @@ const languageSelect = document.getElementById('language');
 const gameModeSelect = document.getElementById('game-mode');
 const infoBox = document.getElementById('info-box');
 
+// Online multiplayer elements
+const onlineControls = document.getElementById('online-controls');
+const createRoomBtn = document.getElementById('create-room-btn');
+const joinRoomBtn = document.getElementById('join-room-btn');
+const joinCodeInput = document.getElementById('join-code-input');
+const roomCodeDisplay = document.getElementById('room-code-display');
+const roomCodeElement = document.getElementById('room-code');
+const onlineStatus = document.getElementById('online-status');
+
 let expectedStartLetter = null;
 let currentWordList = [];
 let usedWords = [];
@@ -16,11 +25,15 @@ let playerPoints = 0;
 let wordsPlayedCount = 0;
 const WORDS_FOR_POINT = 5;
 const HINT_COST = 3;
-const MASTER_CODE_POINTS = 3;
-// Master code
-const MASTER_CODE = '2300';
+const MASTER_CODE_POINTS = 5;
 
-// Special Muhammad words for each language
+// Online multiplayer state
+let currentRoomCode = null;
+let isHost = false;
+let playerNumber = 0;
+let roomRef = null;
+
+// Special Muhammad words
 const muhammadWords = {
   english: ['muhammad', 'muhamad', 'mohamad', 'mohammad', 'mohamed', 'mohammed', 'muhammed', 'muhamed'],
   french: ['muhammad', 'muhamad', 'mohamad', 'mohammad', 'mohamed', 'mohammed', 'muhammed', 'muhamed'],
@@ -33,13 +46,15 @@ const blessings = {
   arabic: 'صلى الله عليه و سلم'
 };
 
+const MASTER_CODE = '2300';
+
 // Your existing word banks
 const wordBanks = {
   english: [
-    "January","February","March","April","May","June","July","August","September","October","November","December","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","rayan","yahya","rokn deen","youssef","walid","muhammad","muhamad","mohamad","mohammad","mohamed","mohammed","muhammed","muhamed","aardwolf","aardwolves","aargh","aarrghh","aasvogel","aasvogels","ab","aba","abaca","abacas","abaci","aback","abacus","abacuses","abaft","abalone","abalones","abampere","abamperes","abandon","abandoned","abandonee","abandoning","abandons","abase","abased","abasement","abases","abash","abashed","abashes","abashing","abashment","abashments","abasing","abatable","abate","abated","abatement","abatements","abates","abating","abatis","abator","abators","abattis","abattises","abattoir","abattoirs","abaxial","abba","abbacies","abbacy","abbas","abbatial","abbe","abbes","abbess","abbesses","abbey","abbeys","abbot","abbotcy","abbots","abbreviate","abdicate","abdicated","abdicates","abdicating","abdication","abdicator","abdicators","abdomen","abdomens","abdominal","abdominals","abduce","abduced","abduces","abducing","abduct","abducted","abductee","abductees","abducting","abduction","abductions","abductor","abductors","abducts","abeam","abear","abearing","abears","abed","abeigh","abele","abeles","abelia","aberdevine","aberrance","aberrancy","aberrant","aberrate","aberrated","aberrates","aberrating","aberration","abessive","abet","abetment","abetments","abets","abettal","abettals","abetted","abetter","abetters","abetting",
-"abettor","abettors","abeyance","abeyances","abeyancies","abeyancy","abeyant","abhor","abhorred","abhorrence","abhorrency","abhorrent","abhorrer","abhorrers","abhorring","abhors","abidance","abidances","abidden","abide","abided","abides","abiding","abidingly","abidings","abies","abieses","abigail","abigails","abilities","ability","abiogenist","abioses","abiosis","abiotic","abject","abjected","abjecting","abjection","abjections","abjectly","abjectness","abjects","abjoint","abjointed","abjointing","abjoints","abjunction","abjuration","abjure","abjured","abjurer","abjurers","abjures","abjuring","ablate","ablated","ablates","ablating","ablation","ablations","ablatival","ablative","ablatives","ablator","ablators","ablaut","ablauts","ablaze","able","abler","ablest","ablet","ablets","ablins","abloom","ablow","ablush","ablution","ablutions","ablutomane","ably","abnegate","abnegated","abnegates","abnegating","abnegation","abnegator","abnegators","abnormal","abnormally","abnormity","abnormous","aboard","abode","abodement","abodes","aboideau","aboideaus","aboideaux","aboil","aboiteau","aboiteaus","aboiteaux","abolish","abolished","abolisher","abolishers","abolishes","abolishing","abolition","abolitions","abolla","abollae","abollas","abomasa","abomasal","abomasum","abomasus","abomasuses","abominable","abominably","abominate","abominated","abominates",
-"abominator","abondance","abondances","aboral","abord","aborded","abording","abords","abore","aboriginal","aborigine","aborigines","aborne","aborning","abort","aborted","aborticide","aborting","abortion","abortional","abortions","abortive","abortively","aborts","abought","aboulia","abound","abounded","abounding","abounds","about","abouts","above","abradant","abradants","abrade","abraded","abrader","abraders","abrades","abrading","abraid","abraided","abraiding","abraids","abram","abranchial","abrasion","abrasions","abrasive","abrasively","abrasives","abraxas","abraxases","abray","abrazo","abrazos","abreact","abreacted","abreacting","abreaction","abreacts","abreast","abrege","abricock","abridge","abridged","abridger","abridgers","abridges","abridging","abridgment","abrim","abrin","abroach","abroad","abrogate","abrogated","abrogates","abrogating","abrogation","abrogative","abrogator","abrogators","abrupt","abrupter","abruptest","abruption","abruptions","abruptly","abruptness","abscess","abscessed","abscesses","abscind","abscinded","abscinding","abscinds","abscise","abscised","abscises","abscisin","abscising","abscisins","absciss","abscissa","abscissae","abscissas","abscisse","abscisses","abscissin","abscissins","abscission","abscond","absconded","absconder","absconders","absconding","absconds","abseil","abseiled","abseiling","abseilings",
-"abseils","absence","absences","absent","absented","absentee","absentees","absenting","absently","absents","absey","absinth","absinthe","absinthes","absinthism","absinths","absit","absolute","absolutely","absolution","absolutism","absolutist","absolutory","absolve","absolved","absolver","absolvers","absolves","absolving","absolvitor","absonant","absorb","absorbable","absorbed","absorbedly","absorbency","absorbent","absorbents","absorber","absorbers","absorbing","absorbs","absorption","absorptive","abstain","abstained","abstainer","abstainers","abstaining","abstains","abstemious","abstention","absterge","absterged","abstergent","absterges","absterging","abstersion","abstersive","abstinence","abstinency","abstinent","abstract","abstracted","abstracter","abstractly","abstractor","abstracts","abstrict","abstricted","abstricts","abstruse","abstrusely","abstruser","abstrusest","absurd","absurder","absurdest","absurdism","absurdist","absurdists","absurdity","absurdly","absurdness","abulia","abuna","abunas","abundance","abundances","abundancy","abundant","abundantly","abune","aburst","abusage","abusages","abuse","abused","abuser","abusers","abuses","abusing","abusion","abusions","abusive","abusively","abut","abutilon","abutilons","abutment","abutments","abuts","abuttal","abuttals","abutted","abutter","abutters","abutting","abuzz","abvolt","abvolts","aby","abye","abyeing","abyes","abying","abysm",
+    "muhammad","muhamad","mohamad","mohammad","mohamed","mohammed","muhammed","muhamed","aardwolf","aardwolves","aargh","aarrghh","aasvogel","aasvogels","ab","aba","abaca","abacas","abaci","aback","abacus","abacuses","abaft","abalone","abalones","abampere","abamperes","abandon","abandoned","abandonee","abandoning","abandons","abase","abased","abasement","abases","abash","abashed","abashes","abashing","abashment","abashments","abasing","abatable","abate","abated","abatement","abatements","abates","abating","abatis","abator","abators","abattis","abattises","abattoir","abattoirs","abaxial","abba","abbacies","abbacy","abbas","abbatial","abbe","abbes","abbess","abbesses","abbey","abbeys","abbot","abbotcy","abbots","abbreviate","abdicate","abdicated","abdicates","abdicating","abdication","abdicator","abdicators","abdomen","abdomens","abdominal","abdominals","abduce","abduced","abduces","abducing","abduct","abducted","abductee","abductees","abducting","abduction","abductions","abductor","abductors","abducts","abeam","abear","abearing","abears","abed","abeigh","abele","abeles","abelia","aberdevine","aberrance","aberrancy","aberrant","aberrate","aberrated","aberrates","aberrating","aberration","abessive","abet","abetment","abetments","abets","abettal","abettals","abetted","abetter","abetters","abetting",
+  "abettor","abettors","abeyance","abeyances","abeyancies","abeyancy","abeyant","abhor","abhorred","abhorrence","abhorrency","abhorrent","abhorrer","abhorrers","abhorring","abhors","abidance","abidances","abidden","abide","abided","abides","abiding","abidingly","abidings","abies","abieses","abigail","abigails","abilities","ability","abiogenist","abioses","abiosis","abiotic","abject","abjected","abjecting","abjection","abjections","abjectly","abjectness","abjects","abjoint","abjointed","abjointing","abjoints","abjunction","abjuration","abjure","abjured","abjurer","abjurers","abjures","abjuring","ablate","ablated","ablates","ablating","ablation","ablations","ablatival","ablative","ablatives","ablator","ablators","ablaut","ablauts","ablaze","able","abler","ablest","ablet","ablets","ablins","abloom","ablow","ablush","ablution","ablutions","ablutomane","ably","abnegate","abnegated","abnegates","abnegating","abnegation","abnegator","abnegators","abnormal","abnormally","abnormity","abnormous","aboard","abode","abodement","abodes","aboideau","aboideaus","aboideaux","aboil","aboiteau","aboiteaus","aboiteaux","abolish","abolished","abolisher","abolishers","abolishes","abolishing","abolition","abolitions","abolla","abollae","abollas","abomasa","abomasal","abomasum","abomasus","abomasuses","abominable","abominably","abominate","abominated","abominates",
+  "abominator","abondance","abondances","aboral","abord","aborded","abording","abords","abore","aboriginal","aborigine","aborigines","aborne","aborning","abort","aborted","aborticide","aborting","abortion","abortional","abortions","abortive","abortively","aborts","abought","aboulia","abound","abounded","abounding","abounds","about","abouts","above","abradant","abradants","abrade","abraded","abrader","abraders","abrades","abrading","abraid","abraided","abraiding","abraids","abram","abranchial","abrasion","abrasions","abrasive","abrasively","abrasives","abraxas","abraxases","abray","abrazo","abrazos","abreact","abreacted","abreacting","abreaction","abreacts","abreast","abrege","abricock","abridge","abridged","abridger","abridgers","abridges","abridging","abridgment","abrim","abrin","abroach","abroad","abrogate","abrogated","abrogates","abrogating","abrogation","abrogative","abrogator","abrogators","abrupt","abrupter","abruptest","abruption","abruptions","abruptly","abruptness","abscess","abscessed","abscesses","abscind","abscinded","abscinding","abscinds","abscise","abscised","abscises","abscisin","abscising","abscisins","absciss","abscissa","abscissae","abscissas","abscisse","abscisses","abscissin","abscissins","abscission","abscond","absconded","absconder","absconders","absconding","absconds","abseil","abseiled","abseiling","abseilings",
+  "abseils","absence","absences","absent","absented","absentee","absentees","absenting","absently","absents","absey","absinth","absinthe","absinthes","absinthism","absinths","absit","absolute","absolutely","absolution","absolutism","absolutist","absolutory","absolve","absolved","absolver","absolvers","absolves","absolving","absolvitor","absonant","absorb","absorbable","absorbed","absorbedly","absorbency","absorbent","absorbents","absorber","absorbers","absorbing","absorbs","absorption","absorptive","abstain","abstained","abstainer","abstainers","abstaining","abstains","abstemious","abstention","absterge","absterged","abstergent","absterges","absterging","abstersion","abstersive","abstinence","abstinency","abstinent","abstract","abstracted","abstracter","abstractly","abstractor","abstracts","abstrict","abstricted","abstricts","abstruse","abstrusely","abstruser","abstrusest","absurd","absurder","absurdest","absurdism","absurdist","absurdists","absurdity","absurdly","absurdness","abulia","abuna","abunas","abundance","abundances","abundancy","abundant","abundantly","abune","aburst","abusage","abusages","abuse","abused","abuser","abusers","abuses","abusing","abusion","abusions","abusive","abusively","abut","abutilon","abutilons","abutment","abutments","abuts","abuttal","abuttals","abutted","abutter","abutters","abutting","abuzz","abvolt","abvolts","aby","abye","abyeing","abyes","abying","abysm",
 "abysmal","abysmally","abysms","abyss","abyssal","abysses","acacia","acacias","academe","academes","academia","academic","academical","academics","academies","academism","academist","academists","academy","acajou","acajous","acaleph","acalephan","acalephans","acalephas","acalephe","acalephes","acalephs","acanaceous","acanth","acantha","acanthas","acanthin","acanthine","acanthoid","acanthous","acanths","acanthus","acanthuses","acapnia","acari","acarian","acariasis","acaricide","acaricides","acarid","acaridan","acaridans","acaridean","acarideans","acarids","acarine","acaroid","acarology","acarpelous","acarpous","acarus","acatalepsy","acater","acaters","acates","acatour","acatours","acaudal","acaudate","acauline","acaulose","accable","accede","acceded","accedence","accedences","acceder","acceders","accedes","acceding","accelerant","accelerate","accend","accension","accensions","accent","accented","accenting","accentor","accentors","accents","accentual","accentuate","accept","acceptable","acceptably","acceptance","acceptancy","acceptant","acceptants","accepted","acceptedly","accepter","accepters","accepting","acceptive","acceptor","acceptors","accepts","access","accessary","accessed","accesses","accessible","accessibly","accessing","accession","accessions","accessory","accidence","accident","accidental","accidented","accidents","accidie","accinge","accinged","accinges","accinging","accipiter",
 "accipiters","accite","accited","accites","acciting","acclaim","acclaimed","acclaiming","acclaims","acclimate","acclimated","acclimates","acclivity","acclivous","accloy","accoast","accoasted","accoasting","accoasts","accoil","accoils","accolade","accolades","accompany","accomplice","accomplish","accompt","accomptant","accompted","accompting","accompts","accorage","accord","accordable","accordance","accordancy","accordant","accorded","accorder","accorders","according","accordion","accordions","accords","accost","accostable","accosted","accosting","accosts","accoucheur","account","accountant","accounted","accounting","accounts","accourage","accourt","accourted","accourting","accourts","accouter","accoutered","accouters","accoutre","accoutred","accoutres","accoutring","accoy","accredit","accredited","accredits","accrescent","accrete","accreted","accretes","accreting","accretion","accretions","accretive","accrual","accruals","accrue","accrued","accrues","accruing","accubation","accultural","accumbency","accumbent","accumulate","accuracies","accuracy","accurate","accurately","accurse","accursed","accursedly","accurses","accursing","accurst","accusable","accusal","accusals","accusation","accusative","accusatory","accuse","accused","accuser","accusers","accuses","accusing","accusingly","accustom","accustomed","accustoms","ace","aced","acedia","acellular","acephalous","aceraceous","acerate","acerb",
 "acerbate","acerbated","acerbates","acerbating","acerbic","acerbities","acerbity","acerose","acerous","acers","acervate","acervately","acervation","aces","acescence","acescency","acescent","acetabula","acetabular","acetabulum","acetal","acetals","acetamide","acetate","acetates","acetic","acetified","acetifies","acetify","acetifying","acetone","acetones","acetose","acetous","acetyl","acetylene","achage","achages","acharne","ache","ached","achene","achenes","achenial","achenium","acheniums","aches","achier","achiest","achievable","achieve","achieved","achiever","achievers","achieves","achieving","achillea","achilleas","achimenes","aching","achingly","achings","achkan","achkans","achromat","achromatic","achromatin","achromats","achy","acicular","aciculate","aciculated","acid","acidhead","acidheads","acidic","acidified","acidifier","acidifiers","acidifies","acidify","acidifying","acidimeter","acidimetry","acidity","acidly","acidness","acidosis","acids","acidulate","acidulated","acidulates","acidulent","acidulous","acierage","acierate","acierated","acierates","acierating","acieration","aciform","acinaceous","acing","acini","aciniform","acinose","acinous","acinus","ackee","ackees","acknow","aclinic","acme","acmes","acmite","acmites","acne","acock","acoemeti","acold","acoluthic","acolyte","acolytes","aconite","aconites","aconitic","aconitine","aconitum","aconitums","acorn","acorned","acorns","acosmism",
@@ -796,7 +811,7 @@ const wordBanks = {
   ],
   french: [
     
-"rayan","yahya","rokn deen","youssef","walid","muhammad","muhamad","mohamad","mohammad","mohamed","mohammed","muhammed","muhamed",
+"muhammad","muhamad","mohamad","mohammad","mohamed","mohammed","muhammed","muhamed",
 "abandon","abaisser","abandonner","abasourdir","abattre","abcès","abeille","abolir","aborder","aboutir","aboyer","abrasif","abreuver","abriter","abroger","absence","absolu","absorber","abuser","accepter","acclamer","accolade","accommoder","accompagner","accomplir","accord","accorder","accoster","accrocher","accroître","accueillir","accuser","acheter",
 "achèvement","acier","acquérir","acquiescer","acte","acteur","actif","action","activiste","activité","actuel","adapter","addition","admettre","admirer","adolescent","adopter","adorer","adresse","adresser","advenir","affaire","affecter","affection","affermir","afficher","affirmer","affliction","affluer","affoler","affronter","agacer","agenda","agent","agglomération","agir","agiter","agoniser","agrandir","agresser","agriculteur","agriculture","aider","aigle","aiguille","aimable","aimer","ainsi","air","aise","ajouter","alarme","alcool","alerte","algèbre","algue","alentour","alerter","alléger","allié","alliance","allumer","alourdir","alpin","altérer","amabilité","amateur","ambassade","ambigu","amener","amertume","ami","amical","amitié","amour","amplifier","amusant","analyser","ancien","anecdote","anesthésie","angle","angoisse","animal","annoncer","annonce","anniversaire","année","annoncer","annonciateur","anomalie","anonymat","antagoniste","anticiper","antérieur","anxiété","apercevoir","apparaître","appareil","appartenir","appauvrir","appel","appeler","applaudir","appliquer","apporter","appréciation","apprendre","apprenti","approuver","approche","approuver","appuyer","aquarium","araignée","arbitre","arbre","archipel","architecte","architecture","argent","argument","aride","aristocratie","armature","arme","armoire","armée","aromatique","arracher","arranger","arrêter","arrivée","arroser","art","article","articulation","artifice","artistique","ascenseur","aspect","asperger","assassin","asseoir","assemblée","assentiment","assertion","asservir","assiette","associer","association","assommer","assortir","assumer","assurer","astuce","astronaute","astre","atelier","athlète","atome","attacher","attaque","atteindre","atteler","attendre","attentif","attention","attirer","attraper","attribuer","aujourd'hui","augmenter","augmentation","auprès","aussi","aussitôt","autant","authentique","autorité","autoriser","automobile","autonome","autonomie","autour","autre","autrui",
 "auvent","avenir","aventure","avertir","aveu","avide","avion","aviser","avocat","avouer","avoir","avouer","axe","babillage","bâche","bacon","bague","baiser","baiser","balle","ballon","balancer","balisage","bambin","banal","banane","bande","bandeau","banlieue","bannir","banque","bar","barbe","barreau","barre","barricade","bassin","bataille","bateau","battre","bavard","bazar","beau","beauté","beaucoup","bec","bêcher","belle","belvédère","bénéfice","bénévole","berger","besoin","bête","bibliothèque","bicyclette","bijou","billet","binaire","binôme","biographie","biologique","blague","blanc","blessé","blesser","bloc","blond","blouson","bobine","boire","bois","boîte","bombe","bon","bonheur","bonnet","bonté","bord","bordure","borne","bosse","boston","bouche","boucle","bouger","boulanger","boule","boulot","bouquet","bourgeois","bourse","bout","boutique","bouteille","boxer","boyau","branche","brave","bravo","brèche","bricolage","briller","brin","briser","brique","broche","brochure","bronzer","brosse","bruit","brûler","brume","brun","brusque","bûche","budget","buffet","bureau","burlesque","but","butin","butterfly","buvette","cabanon","cabane","cabaret","cacher","cachette","cadeau","cadre","café","cage","cahier","cailler","caillou","calcule","calculer","calendrier","calme","calomnie","caméra","camion","camp","campagne","canal","canard","canette","candidat","candidature","cane","canicule","canon","capacité","capitale","capitaine","capteur","capuche","car","caractère","caractéristique","caravane","carburant","cardiaque","carte","carton","cascade","case","casque","casier","cause","caution","cavalier","caverne","céder","ceinture","cela","celle","cendre","censé","cent","centre","central","century","cerise","certain","certitude","cervelle","cesser","cette","chacun","chaîne","chair","chaise","chaloupe","chambre","chambrer","champ","champagne","champion","chance","changement","changer","chant","chanter","chaos","chapitre","char","charbon","charge","charger","charitable",
@@ -855,7 +870,7 @@ const wordBanks = {
 // TODO: load ~8000 French words
   ],
   arabic: [
-    "سباغيتي","لازانيا","رافيولي","تورتيليني","نيوكي","ريزوتو","باييلا","كسكس","كينوا","حمص","فلافل","شاورما","كباب","وليدANDOري","برياني","سمبوسة","نان","روتي","خبز بيتا","تبولة","مسقعة","بقلاوة","دولما","تزاتزيكي","جيروس","رامن","أودون","سوبا","تمبورا","سوشي","ساشيمي","ميزو","توفو","كيمتشي","بيبيمباب","بولغوغي","فو","سبرينغ رول","دمبلنغ","باوزي","ديم سام","كونجي","نودلز مقلية","باد تاي","ساتاي","لاكسه","رندانغ","كاري","دال","عدس","بانير","إدلي","دوسا","شاتني","بوتين","هامبرغر","تشيزبرغر","هوت دوغ","ساندويتش","راب","بوريتو","تاكو","كيساديا","إنشيلادا","فاهيتا","غواكامولي","سالسا","ناتشوز","تشيميتشانغا","أريبا","إمبانادا","تامالي","سيفيتشي","غاسباتشو","تاباس","راتاتوي","سوفليه","فوندو","كرواسون","باغيت","بريوش","كريب","إكلير","ماكرون","تيراميسو","كانولي","جيلاتو","بانيتوني","بروسكيوتو","موزاريلا","غورغونزولا","بري","كامامبير","شيدر","غودا","فيتا","حلومي","لبن زبادي","لبن رايب","سموثي","ميلك شيك","ليمونادة","شاي مثلج","إسبريسو","لاتيه","كابتشينو","أمريكانو","ماكياتو","موكا","شاي تشاي","ماتشا","كومبوتشا","سيدر","بيرة","لاجر","آيل","ستاوْت","بورتر","نبيذ","شامبانيا","ويسكي","فودكا","رَم","جين","تيكيلا","كونياك","ليكور","كوكتيل","مارتيني","مارغريتا","موجيتو","سانغريا","بونش","شوربة","يخنة","مرق","تشاودر","غامبو","جامبالايا","كاسرولة","عجة","فريتاتا","بيض مخفوق","بان كيك","وافل","مافن","كب كيك","براوني","تشيز كيك","فطيرة","فطيرة تفاح","فطيرة قرع","فطيرة جوز بيكان","كيك جزر","ريد فلفت","بسكويت سابليه","خبز زنجبيل","دونات","بَيْغل","بريتزل","شيبس","بطاطس مقلية","بوشار","مقرمشات","مكسرات مشكلة","غرانولا","حبوب إفطار","عصيدة","شوفان","عسل","مربى","جيلي","مربى برتقال","زبدة فول سوداني","زبدة لوز","زبدة كاجو","مخللات","ملفوف مخلل","خردل","كاتشب","مايونيز","صلصة باربكيو","صلصة صويا","صلصة سمك","سريراتشا","تاباسكو","وسابي","فجل حار","أب","ريان","يوسف","يحيى","ركن الدين","أجل","أحمد","أحب","أخذ","أخير","أخ","أخت","أداء","أذن","أرض","أرضي","أربع","أسبوع","أسبق","أصل","أصدقاء","أصدقاء","أعد","أعرف","أغنية","أفكار","أقرب","أقوى","أكثر","أكلات","أم","أما","أمر","أموال","أن","أنا","أنجز","أنس","أنت","أنتِ","أنثى","أهل","أولوية","أول","أولاً","أي","أيام","أيضاً","أين","بائع","باب","بابا","بادئ","بداية","بالقرب","بالطبع","بالكامل","باليد","بالغة","باليوم","بانتظام","بأن","بأنفسهم","بأول","بإذن","بأسلوب","باشتراك","بالتأكيد","بتاريخ","بجانب","بحاجة","بحر","بحرية","بعد","بعدة","بعض","بسبب","بساطة","بسعر","بشكل","بشكلٍ","بصورة","بصوت","بصورةٍ","بطاقة","بجانب","بطل",
+    "سباغيتي","لازانيا","رافيولي","تورتيليني","نيوكي","ريزوتو","باييلا","كسكس","كينوا","حمص","فلافل","شاورما","كباب","تANDOري","برياني","سمبوسة","نان","روتي","خبز بيتا","تبولة","مسقعة","بقلاوة","دولما","تزاتزيكي","جيروس","رامن","أودون","سوبا","تمبورا","سوشي","ساشيمي","ميزو","توفو","كيمتشي","بيبيمباب","بولغوغي","فو","سبرينغ رول","دمبلنغ","باوزي","ديم سام","كونجي","نودلز مقلية","باد تاي","ساتاي","لاكسه","رندانغ","كاري","دال","عدس","بانير","إدلي","دوسا","شاتني","بوتين","هامبرغر","تشيزبرغر","هوت دوغ","ساندويتش","راب","بوريتو","تاكو","كيساديا","إنشيلادا","فاهيتا","غواكامولي","سالسا","ناتشوز","تشيميتشانغا","أريبا","إمبانادا","تامالي","سيفيتشي","غاسباتشو","تاباس","راتاتوي","سوفليه","فوندو","كرواسون","باغيت","بريوش","كريب","إكلير","ماكرون","تيراميسو","كانولي","جيلاتو","بانيتوني","بروسكيوتو","موزاريلا","غورغونزولا","بري","كامامبير","شيدر","غودا","فيتا","حلومي","لبن زبادي","لبن رايب","سموثي","ميلك شيك","ليمونادة","شاي مثلج","إسبريسو","لاتيه","كابتشينو","أمريكانو","ماكياتو","موكا","شاي تشاي","ماتشا","كومبوتشا","سيدر","بيرة","لاجر","آيل","ستاوْت","بورتر","نبيذ","شامبانيا","ويسكي","فودكا","رَم","جين","تيكيلا","كونياك","ليكور","كوكتيل","مارتيني","مارغريتا","موجيتو","سانغريا","بونش","شوربة","يخنة","مرق","تشاودر","غامبو","جامبالايا","كاسرولة","عجة","فريتاتا","بيض مخفوق","بان كيك","وافل","مافن","كب كيك","براوني","تشيز كيك","فطيرة","فطيرة تفاح","فطيرة قرع","فطيرة جوز بيكان","كيك جزر","ريد فلفت","بسكويت سابليه","خبز زنجبيل","دونات","بَيْغل","بريتزل","شيبس","بطاطس مقلية","بوشار","مقرمشات","مكسرات مشكلة","غرانولا","حبوب إفطار","عصيدة","شوفان","عسل","مربى","جيلي","مربى برتقال","زبدة فول سوداني","زبدة لوز","زبدة كاجو","مخللات","ملفوف مخلل","خردل","كاتشب","مايونيز","صلصة باربكيو","صلصة صويا","صلصة سمك","سريراتشا","تاباسكو","وسابي","فجل حار","أب","ريان","يوسف","يحيى","ركن الدين","أجل","أحمد","أحب","أخذ","أخير","أخ","أخت","أداء","أذن","أرض","أرضي","أربع","أسبوع","أسبق","أصل","أصدقاء","أصدقاء","أعد","أعرف","أغنية","أفكار","أقرب","أقوى","أكثر","أكلات","أم","أما","أمر","أموال","أن","أنا","أنجز","أنس","أنت","أنتِ","أنثى","أهل","أولوية","أول","أولاً","أي","أيام","أيضاً","أين","بائع","باب","بابا","بادئ","بداية","بالقرب","بالطبع","بالكامل","باليد","بالغة","باليوم","بانتظام","بأن","بأنفسهم","بأول","بإذن","بأسلوب","باشتراك","بالتأكيد","بتاريخ","بجانب","بحاجة","بحر","بحرية","بعد","بعدة","بعض","بسبب","بساطة","بسعر","بشكل","بشكلٍ","بصورة","بصوت","بصورةٍ","بطاقة","بجانب","بطل",
 "بداية","بيع","بقية","بكرة","بلا","بلمسة","بند","بني","بهذا","بهذه","بيد","بين","بينهم","بيرة","بيئة","بيتي","تاريخ","تاج","تاجر","تأكيد","تأمين","تأثر","تأهيل","تبحث","تجمع","تجنب","تحدث","تحقيق","تحكم","تحمل","تحليل","تخطيط","تدريب","تدريس","تدفئة","تذكرة","ترتيب","ترديد","تسجيل","تسويق","تسليم","تسوية","تسأل","تشجيع","تحديد","تحدث","تخزين","تدبير","تدريس","تقدم","تقديم","تطوير","تواصل","تفسير","تقاطع","تغيير","تقليدي","تقليل","تقنية","تلقائي","تلخيص","تمثيل","تمويل","تنظيم","تنفيذ","تعدد","تقدير","تسجيل","تسريع","تسليم","تشغيل","تشخيص","تشجيع",
 "تصديق","تصميم","تصنيع","تصرف","تضمين","تفسير","تقديم","تقدير","تقديم","توفير","توصيل","توضيح","توثيق","توليد","توصيات","توقع","تقديم","ثانوي","ثابت","ثقة","ثقافة","ثروة","ثلاث","ثنائي","جائزة","جاري","جانب","جسم","جمع","جميل","جميلة","جنة","جنوب","جنيه","جواب","جوع","جودة","جوي","جاهز","جميع","جميعهم","حاضر","حالة","حسب","حسن","حساسية","حسّن","حسب","حق","حقاً","حقوق","حدث","حذر","حرق","حركة","حرف","حرفة","حقيقي","حصاد","حصن","حضور","حضورهم","حياة","حيوان","خاصة","خادم","خبر","خبير","خدمة","خدمات","خريطة","خروج","خزانة","خطر","خطف","خلق","خليل","خلية","خلف","خلفية","خمر","خمس","خبز","خوف","خبير","خصوصي","خسارة","خشب","خدمة","داخل","داخلي","دائرة","دافئ","دان","دبابة","دبلوماسي","دجاج","دراسة","درجات","درس","درهم","دفع","دفتر","دفء","دقيق","دكتور","دخول","ذكر","ذكاء","ذكرى","رئيس","رئيسي","رأي","راتب","رحلة","روح","رسالة","رسمي","رسوم","رسمياً","رصد","رصيد","رغبة","رغيف","رفض","رجل","رعاية","ركن","رقيق","رسال","رمال","رماية","رؤية","رياضة","رئيسية","رئيسي","روعة","روحاني","روزنامة","ريال","ريموت","زائد","زاوية","زراعة","زجاج","زيارة","زمن","زمرد","زميل","زوج","زوجة","زوجي","زمان","سباق","سبت","سبق","سحب","ساحة","ساعه","سابق","سريع","سعادة","ساعات","سائل","سلام","سلسلة","سلطة","سلم","سن","سنة","سنوات","سؤال","سوق","سيرة","سير","سعادة","سهل","سهم","سيارة","سيد","سياسي","سيطرة","سيطرة","سيف","سكن","سكوت","سكينة","سمك","سمة","سمعة","سهل","سلم","سلس","سهم","سيد","سيرة","سيرة","سير","سلوك","سلامة","سلوكيات","سقف","سهم","سيرة","سعادة","سريع","سعادة","سلاح","سيد","سلوك","سيرة","ساحة","سنة","سيدة","سكن","سماح","سماء","سماكة","سلم","سهل","سلة","سن","سعر","سيرة","سفينة","سفر","سقف","سند","سهم","سياحة","سيطرة","سيمفونية","سينما","سلوك","سيرة","سيدة","سيرة","سوداء","سوق","سؤال","سطر","سيرة","سريع","سعادة","سعيد","سلم","سقف","سماح","سمعة","سعادة","سيرة","سيرة","سفير","سقف","سفر","سطر","سهم","سوق","سيد","سريعة","سيدة","سكان","سلوك","سيرة","سهم","سفينة","سلسلة","سلم","سعادة","سلوك","سقف","سيدة","سيرة","سفر","سهم","سير","سؤال","سفينة","سعر","سهل","ساحة","سلوك","سقف","سريع","سعادة","سنة","سكان","سياحة","سفر","سيرة","سيد","سلوك","سهم","سقف","سلاح","سيرة","سيدة","سريع","سفر","سماح","سقف","سلوك","سيرة","سلم","سعادة","سؤال","سيدة","سهم","سفر","ساحة","سهل","سلوك","سقف","سريع","سعادة","سلم","سيرة","سفر","سهم","سير","سؤال","سفينة","سعر","سهل","ساحة","سلوك","سقف","سريع","سعادة",
 "شخص","شخصية","شارع","شجرة","شاي","شديد","شغل","شهادة","شمس","شيء","شبكة","شباب","شريك","شجاعة","شقة","شلال","شائع","شمسية","شغف","شفاء","شكل","شقيق","شكر","شكوى","شمعة","شنطة","شمال","شهوة","شهير","شعور","شعبة","شائع","شوارع","شعبي","شريعة","شهادة","شغّل","شغف","شؤون","شهر","شواطئ","شحن","شراء","شرط","شروط","شريف","شرطي","شراب","شيطان","شخصي","شجرة","شبكة","شهرية","شقة","شغف","شدة","شكر","شروق","شاي","شغب","شغف","شبه","شاهد","شاعري","شاغل","شعلة","شديد","شجرة","شريحة","شامخ","شحنة","شاهد","شؤون","شبه","شديد","شامل","شعبية","شخصية","شريك","شريعة","شوك","شجاعة","شخصية","شرف","شام","شرفاء","شيوعي","شبكة","شغف","شجاعة","شاهد","شعور","شكر","شهير","شباب","شبه","شمسية","شغف","شرعي","شاي","شجار","شهر","شجاعة","شعور","شاهد","شديد","شؤون","شخصية","شجرة","شركاء","شغف","شراكة","شعبي","شكر","شهادة","شوارع","شاهد","شيوخ","شغف","شاي","شدة","شائع","شخص","شريك","شباب","شعور","شغف","شاهد","شعبية","شكر","شهادة","شجاع","شقة","شجار","شغف","شهور","شاي","شمال","شخصية","شريك","شعور","شهادة","شامل","شغف","شديد","شيوع","شمس","شاهد","شغف","شباب","شعر","شكر","شهور","شخص","شجرة","شغف","شديد","شراكة","شعور","شهادة","شريك","شاي","شرف","شغف","شائع","شباب","شغف","شاهد","شهر","شخصية","شغف","شكر","شوارع","شخص","شعبية","شمسية","شهادة","شغف","شكر","شغف","شغف","شهر","شخصية","شعور","شريك","شجرة","شغف","شاهد","شرف","شهادة","شاي","شعبية","شديد","شخصية","شغف","شهور","شكر","شخص","شغف","شاهد","شجرة","شعبية","شركاء","شغف","شاي","شغف","شغف","شكر","شخصية","شغف","شؤون","شهر","شخص","شريك","شغف","شاي","شهادة","شغف","شعور","شباب","شغف","شهور","شكر","شخص","شغف","شاهد","شجرة","شعبية","شركاء","شغف","شاي","شغف","شغف","شكر","شخصية","شغف","شؤون","شهر","شخص","شريك","شغف","شاي","شهادة","شغف","شعور","شباب","شغف","شهور","شكر","شخص","شغف","شاهد","شجرة","شعبية","شركاء","شغف","شاي","شغف","شغف","شكر","شخصية","شغف","شؤون","شهر","شخص","شريك","شغف","شاي","شهادة","شغف","شعور","شباب","شغف","شهور","شكر","شخص","شغف","شاهد","شجرة","شعبية","شركاء","شغف","شاي","شغف","شغف","شكر",
@@ -899,6 +914,169 @@ const wordBanks = {
 
 
 
+// Generate random 6-digit room code
+function generateRoomCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// Update online status display
+function updateOnlineStatus(message, color = '#2196F3') {
+  onlineStatus.textContent = message;
+  onlineStatus.style.backgroundColor = color;
+  onlineStatus.style.color = 'white';
+  onlineStatus.style.display = 'block';
+}
+
+// Create room
+createRoomBtn.addEventListener('click', async () => {
+  const roomCode = generateRoomCode();
+  currentRoomCode = roomCode;
+  isHost = true;
+  playerNumber = 1;
+  
+  roomRef = window.database.ref('rooms/' + roomCode);
+  
+  await roomRef.set({
+    hostId: Date.now(),
+    language: currentLanguage,
+    currentPlayer: 1,
+    expectedStartLetter: null,
+    usedWords: [],
+    createdAt: Date.now()
+  });
+  
+  roomCodeElement.textContent = roomCode;
+  roomCodeDisplay.style.display = 'block';
+  createRoomBtn.disabled = true;
+  joinCodeInput.disabled = true;
+  joinRoomBtn.disabled = true;
+  
+  updateOnlineStatus('Waiting for player 2...', '#FF9800');
+  
+  // Listen for player 2 joining
+  roomRef.child('player2Id').on('value', (snapshot) => {
+    if (snapshot.val()) {
+      updateOnlineStatus('Player 2 joined! Game started!', '#4CAF50');
+      startOnlineGame();
+    }
+  });
+  
+  // Listen for moves
+  roomRef.child('lastMove').on('value', handleOpponentMove);
+});
+
+// Join room
+joinRoomBtn.addEventListener('click', async () => {
+  const code = joinCodeInput.value.trim().toUpperCase();
+  if (!code || code.length !== 6) {
+    updateOnlineStatus('Invalid room code!', '#FF6B6B');
+    return;
+  }
+  
+  currentRoomCode = code;
+  isHost = false;
+  playerNumber = 2;
+  
+  roomRef = window.database.ref('rooms/' + code);
+  
+  const snapshot = await roomRef.once('value');
+  if (!snapshot.exists()) {
+    updateOnlineStatus('Room not found!', '#FF6B6B');
+    return;
+  }
+  
+  await roomRef.update({
+    player2Id: Date.now()
+  });
+  
+  updateOnlineStatus('Joined! Waiting for Player 1...', '#4CAF50');
+  createRoomBtn.disabled = true;
+  joinCodeInput.disabled = true;
+  joinRoomBtn.disabled = true;
+  
+  startOnlineGame();
+  
+  // Listen for moves
+  roomRef.child('lastMove').on('value', handleOpponentMove);
+});
+
+// Start online game
+function startOnlineGame() {
+  resetGame();
+  input.disabled = playerNumber !== 1;
+  submitBtn.disabled = playerNumber !== 1;
+  
+  if (playerNumber === 1) {
+    appendSystemLog('Your turn! Start with any word.', '#4CAF50');
+  } else {
+    appendSystemLog('Player 1 starts. Wait for their move...', '#2196F3');
+  }
+}
+
+// Handle opponent's move
+function handleOpponentMove(snapshot) {
+  if (!snapshot.exists()) return;
+  
+  const move = snapshot.val();
+  if (move.playerNumber === playerNumber) return; // Ignore own moves
+  
+  const word = move.word;
+  appendToLog(word, move.playerNumber);
+  usedWords.push(word);
+  expectedStartLetter = word[word.length - 1];
+  
+  // Enable input for current player
+  if (move.playerNumber !== playerNumber) {
+    input.disabled = false;
+    submitBtn.disabled = false;
+    input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
+  }
+}
+
+// Send move to Firebase
+async function sendMove(word) {
+  if (!roomRef) return;
+  
+  await roomRef.child('lastMove').set({
+    word: word,
+    playerNumber: playerNumber,
+    timestamp: Date.now()
+  });
+  
+  await roomRef.child('usedWords').set(usedWords);
+  await roomRef.child('expectedStartLetter').set(expectedStartLetter);
+  
+  // Disable input until opponent plays
+  input.disabled = true;
+  submitBtn.disabled = true;
+  appendSystemLog('Waiting for opponent...', '#2196F3');
+}
+
+// Game mode change
+gameModeSelect.addEventListener('change', () => {
+  gameMode = gameModeSelect.value;
+  
+  if (gameMode === 'online') {
+    onlineControls.style.display = 'block';
+    // Disconnect from previous room
+    if (roomRef) {
+      roomRef.off();
+      roomRef = null;
+    }
+    currentRoomCode = null;
+    createRoomBtn.disabled = false;
+    joinCodeInput.disabled = false;
+    joinRoomBtn.disabled = false;
+    roomCodeDisplay.style.display = 'none';
+    onlineStatus.style.display = 'none';
+  } else {
+    onlineControls.style.display = 'none';
+  }
+  
+  updateHintButtonVisibility();
+  resetGame();
+});
+
 // Get random word
 function getRandomWord(startLetter = null) {
   const filtered = startLetter 
@@ -928,11 +1106,7 @@ function updatePointsDisplay() {
 function updateHintButtonVisibility() {
   const hintBtn = document.getElementById('hint-btn');
   if (hintBtn) {
-    if (gameMode === 'computer') {
-      hintBtn.style.display = 'inline-block';
-    } else {
-      hintBtn.style.display = 'none';
-    }
+    hintBtn.style.display = gameMode === 'computer' ? 'inline-block' : 'none';
   }
 }
 
@@ -940,7 +1114,7 @@ function updateHintButtonVisibility() {
 function appendToLog(text, from = 'player') {
   const div = document.createElement('div');
   
-  if (gameMode === 'two-player') {
+  if (gameMode === 'two-player' || gameMode === 'online') {
     div.textContent = `Player ${from}: ${text}`;
     div.style.color = from === 1 ? '#0077cc' : '#cc7700';
   } else {
@@ -962,16 +1136,14 @@ function appendSystemLog(text, color = '#FF6B6B') {
   gameLog.scrollTop = gameLog.scrollHeight;
 }
 
-// Check if word is a Muhammad variant
+// Check if word is Muhammad variant
 function isMuhammadWord(word) {
   return muhammadWords[currentLanguage].includes(word.toLowerCase());
 }
 
 // Get hint word
 function getHintWord() {
-  if (gameMode !== 'computer') {
-    return; // Only work in computer mode
-  }
+  if (gameMode !== 'computer') return;
   
   if (playerPoints < HINT_COST) {
     appendSystemLog(`❌ Need ${HINT_COST} points for a hint. You have ${playerPoints} points.`, '#FF6B6B');
@@ -998,20 +1170,14 @@ function getHintWord() {
   appendSystemLog(`💡 Hint: "${hintWord}" (Cost: ${HINT_COST} points)`, '#9C27B0');
 }
 
-// Game mode change handler
-gameModeSelect.addEventListener('change', () => {
-  gameMode = gameModeSelect.value;
-  updateHintButtonVisibility();
-  resetGame();
-});
-
+// Submit button
 submitBtn.addEventListener('click', () => {
   const playerWord = input.value.trim().toLowerCase();
   if (!playerWord) return;
 
-  // Check for master code (only in computer mode at start)
+  // Master code (computer mode only)
   if (gameMode === 'computer' && playerWord === MASTER_CODE && usedWords.length === 0) {
-    appendToLog("Hello Master Rayan Kartobi!🫡", 'computer');
+    appendToLog("Hello Master Rayan Kartobi", 'computer');
     playerPoints += MASTER_CODE_POINTS;
     updatePointsDisplay();
     appendSystemLog(`🎁 Bonus: +${MASTER_CODE_POINTS} points awarded!`, '#4CAF50');
@@ -1019,53 +1185,53 @@ submitBtn.addEventListener('click', () => {
     return;
   }
 
-  // Check if word exists in current language list
+  // Validate word
   if (!currentWordList.includes(playerWord)) {
     appendSystemLog(`❌ "${playerWord}" is not in dictionary`, '#FF6B6B');
     input.value = '';
     return;
   }
 
-  // Check if correct starting letter
   if (expectedStartLetter && playerWord[0] !== expectedStartLetter) {
     appendSystemLog(`❌ Word must start with "${expectedStartLetter}"`, '#FF6B6B');
     input.value = '';
     return;
   }
 
-  // Check if word was already used
   if (usedWords.includes(playerWord)) {
     appendSystemLog(`❌ "${playerWord}" was already used`, '#FF6B6B');
     input.value = '';
     return;
   }
 
-  // Word is valid
-  if (gameMode === 'two-player') {
+  // Handle different game modes
+  if (gameMode === 'online') {
+    appendToLog(playerWord, playerNumber);
+    usedWords.push(playerWord);
+    expectedStartLetter = playerWord[playerWord.length - 1];
+    sendMove(playerWord);
+    
+  } else if (gameMode === 'two-player') {
     appendToLog(playerWord, currentPlayer);
     usedWords.push(playerWord);
-    const lastLetter = playerWord[playerWord.length - 1];
-    expectedStartLetter = lastLetter;
-    
+    expectedStartLetter = playerWord[playerWord.length - 1];
     currentPlayer = currentPlayer === 1 ? 2 : 1;
     input.placeholder = `Player ${currentPlayer}'s turn - start with "${expectedStartLetter}"`;
     
   } else {
-    // Computer mode - count words and award points every 5 words
+    // Computer mode
     appendToLog(playerWord, 'player');
     usedWords.push(playerWord);
     wordsPlayedCount++;
     
-    // Give 1 point after every 5 valid words
     if (wordsPlayedCount >= WORDS_FOR_POINT) {
       playerPoints++;
       wordsPlayedCount = 0;
-      appendSystemLog(`🏆 5 words completed! +1 point awarded!`, '#FFD700');
+      appendSystemLog(`🎯 5 words completed! +1 point awarded!`, '#FFD700');
     }
     
     updatePointsDisplay();
     
-    // Check if player said Muhammad
     if (isMuhammadWord(playerWord)) {
       setTimeout(() => {
         const blessing = blessings[currentLanguage];
@@ -1078,8 +1244,6 @@ submitBtn.addEventListener('click', () => {
     }
     
     const lastLetter = playerWord[playerWord.length - 1];
-
-    // Computer responds
     const availableWords = currentWordList.filter(
       w => w[0] === lastLetter && !usedWords.includes(w)
     );
@@ -1096,7 +1260,6 @@ submitBtn.addEventListener('click', () => {
       appendToLog(computerWord, 'computer');
       usedWords.push(computerWord);
       
-      // Check if computer said Muhammad
       if (isMuhammadWord(computerWord)) {
         setTimeout(() => {
           const blessing = blessings[currentLanguage];
@@ -1114,7 +1277,7 @@ submitBtn.addEventListener('click', () => {
   input.value = '';
 });
 
-// Reset
+// Reset game
 function resetGame() {
   input.value = '';
   input.disabled = false;
@@ -1122,13 +1285,16 @@ function resetGame() {
   expectedStartLetter = null;
   usedWords = [];
   currentPlayer = 1;
-  wordsPlayedCount = 0; // Reset word count to start fresh progress
-  // Keep playerPoints - don't reset
+  wordsPlayedCount = 0;
   updatePointsDisplay();
   updateHintButtonVisibility();
   gameLog.innerHTML = '';
   
-  if (gameMode === 'two-player') {
+  if (gameMode === 'online') {
+    if (currentRoomCode) {
+      appendSystemLog(`🌐 Online game in room ${currentRoomCode}`, '#2196F3');
+    }
+  } else if (gameMode === 'two-player') {
     appendSystemLog("🔁 Game reset. Player 1 starts with any word.", '#2196F3');
     input.placeholder = "Player 1's turn - start with any word";
   } else {
@@ -1137,35 +1303,32 @@ function resetGame() {
   }
 }
 
-// Language change
+// Set language
 function setLanguage(lang) {
   currentLanguage = lang;
   currentWordList = wordBanks[lang];
   resetGame();
 }
 
+// Event listeners
 giveUpBtn.addEventListener('click', resetGame);
 
-// Hint button handler
 const hintBtn = document.getElementById('hint-btn');
 if (hintBtn) {
   hintBtn.addEventListener('click', getHintWord);
 }
 
-// Enter key support
 input.addEventListener('keypress', function(e) {
   if (e.key === 'Enter') {
     submitBtn.click();
   }
 });
 
-// Info toggle
 const toggleBtn = document.getElementById('toggle-info');
 toggleBtn.addEventListener('click', () => {
   infoBox.classList.toggle('show');
 });
 
-// Info text updates
 const infoTexts = {
   english: `
     <h3>Word Chain Game Info</h3>
@@ -1173,39 +1336,28 @@ const infoTexts = {
     <ul>
       <li>Type a word in English.</li>
       <li>Each word must start with the last letter of the previous word.</li>
-      <li>Press "Enter" or "Submit" to play.</li>
-      <li>Click "Reset Game" to start over.</li>
       <li><strong>vs Computer:</strong> Earn 1 point every ${WORDS_FOR_POINT} words. Spend ${HINT_COST} points for a hint!</li>
-      <li><strong>2 Players:</strong> Take turns with a friend. The game only validates words!</li>
+      <li><strong>2 Players (Local):</strong> Take turns on the same device!</li>
+      <li><strong>Online Multiplayer:</strong> Create or join a room with a 6-digit code!</li>
       <li><strong>Special:</strong> Say "Muhammad" and receive a blessing!</li>
     </ul>
   `,
   french: `
     <h3>Info du Jeu de Chaîne de Mots</h3>
-    <p>Bienvenue au Jeu de Chaîne de Mots !</p>
+    <p>Bienvenue!</p>
     <ul>
       <li>Tapez un mot en français.</li>
-      <li>Chaque mot doit commencer par la dernière lettre du mot précédent.</li>
-      <li>Il y a quelques mots secrets qui peuvent être écrits DEUX FOIS!</li>
-      <li>Appuyez sur "Entrée" ou "Submit" pour jouer.</li>
-      <li>Cliquez sur "Reset Game" pour réinitialiser.</li>
-      <li><strong>vs Computer:</strong> Gagnez 1 point tous les ${WORDS_FOR_POINT} mots. Dépensez ${HINT_COST} points pour un indice!</li>
-      <li><strong>2 Joueurs:</strong> Jouez à tour de rôle. Le jeu valide seulement les mots!</li>
-      <li><strong>Spécial:</strong> Dites "Muhammad" et recevez une bénédiction!</li>
+      <li><strong>vs Ordinateur:</strong> 1 point tous les ${WORDS_FOR_POINT} mots!</li>
+      <li><strong>2 Joueurs:</strong> Jouez à tour de rôle!</li>
+      <li><strong>En ligne:</strong> Créez ou rejoignez une salle!</li>
     </ul>
   `,
   arabic: `
-    <h3>معلومات عن لعبة سلسلة الكلمات</h3>
-    <p>مرحبًا بك في لعبة سلسلة الكلمات!</p>
+    <h3>معلومات اللعبة</h3>
     <ul>
-      <li>اكتب كلمة باللغة العربية.</li>
-      <li>يجب أن يبدأ كل كلمة بالحرف الأخير من الكلمة السابقة.</li>
-      <li>اضغط "Enter" أو "Submit" للعب.</li>
-      <li>هناك بعض الكلمات السرية التي يمكن كتابتها مرتين! 🤫</li>
-      <li>اضغط "Reset Game" لإعادة ضبط اللعبة.</li>
-      <li><strong>ضد الكمبيوتر:</strong> احصل على نقطة واحدة كل ${WORDS_FOR_POINT} كلمات. أنفق ${HINT_COST} نقاط للحصول على تلميح!</li>
-      <li><strong>لاعبان:</strong> العب مع صديق. اللعبة تتحقق من الكلمات فقط!</li>
-      <li><strong>خاص:</strong> قل "محمد" واحصل على بركة!</li>
+      <li><strong>ضد الكمبيوتر:</strong> نقطة كل ${WORDS_FOR_POINT} كلمات!</li>
+      <li><strong>لاعبان:</strong> العب مع صديق!</li>
+      <li><strong>عبر الإنترنت:</strong> أنشئ غرفة أو انضم!</li>
     </ul>
   `
 };
