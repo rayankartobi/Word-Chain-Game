@@ -1371,3 +1371,38 @@ languageSelect.addEventListener('change', () => {
 // Initialize
 setLanguage('english');
 updateHintButtonVisibility();
+
+// Automatically focus and select input when it's your turn
+function enableInput() {
+  input.disabled = false;
+  input.focus();
+  input.select();
+}
+
+// Disable input when it's not your turn
+function disableInput() {
+  input.disabled = true;
+  input.blur();
+}
+
+// Example integration (you may already have something like this):
+function nextTurn(currentPlayer) {
+  if (gameMode === 'two-player') {
+    if (currentPlayer === 'player1') {
+      disableInput(); // Wait for player 2
+    } else {
+      enableInput(); // Player 2's turn
+    }
+  } else if (gameMode === 'computer') {
+    if (currentPlayer === 'computer') {
+      disableInput(); // Computer plays
+    } else {
+      enableInput(); // Your turn
+    }
+  }
+}
+
+// Also make sure input auto-focuses when game starts:
+window.addEventListener('load', () => {
+  enableInput();
+});
