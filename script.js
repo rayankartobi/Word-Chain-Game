@@ -914,6 +914,24 @@ const wordBanks = {
 
 
 
+// Set input state with auto-focus
+function setInputState(enabled, shouldFocus = true) {
+  input.disabled = !enabled;
+  submitBtn.disabled = !enabled;
+  
+  if (enabled && shouldFocus) {
+    setTimeout(() => input.focus(), 100);
+  }
+  
+  if (!enabled) {
+    input.style.cursor = 'not-allowed';
+    input.style.opacity = '0.6';
+  } else {
+    input.style.cursor = 'text';
+    input.style.opacity = '1';
+  }
+}
+
 // Generate random 6-digit room code
 function generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -1003,12 +1021,12 @@ joinRoomBtn.addEventListener('click', async () => {
 // Start online game
 function startOnlineGame() {
   resetGame();
-  input.disabled = playerNumber !== 1;
-  submitBtn.disabled = playerNumber !== 1;
   
   if (playerNumber === 1) {
+    setInputState(true, true);
     appendSystemLog('Your turn! Start with any word.', '#4CAF50');
   } else {
+    setInputState(false, false);
     appendSystemLog('Player 1 starts. Wait for their move...', '#2196F3');
   }
 }
@@ -1027,8 +1045,7 @@ function handleOpponentMove(snapshot) {
   
   // Enable input for current player
   if (move.playerNumber !== playerNumber) {
-    input.disabled = false;
-    submitBtn.disabled = false;
+    setInputState(true, true);
     input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
   }
 }
@@ -1047,8 +1064,7 @@ async function sendMove(word) {
   await roomRef.child('expectedStartLetter').set(expectedStartLetter);
   
   // Disable input until opponent plays
-  input.disabled = true;
-  submitBtn.disabled = true;
+  setInputState(false, false);
   appendSystemLog('Waiting for opponent...', '#2196F3');
 }
 
@@ -1168,6 +1184,7 @@ function getHintWord() {
   playerPoints -= HINT_COST;
   updatePointsDisplay();
   appendSystemLog(`💡 Hint: "${hintWord}" (Cost: ${HINT_COST} points)`, '#9C27B0');
+  input.focus(); // Refocus after hint
 }
 
 // Submit button
@@ -1182,6 +1199,7 @@ submitBtn.addEventListener('click', () => {
     updatePointsDisplay();
     appendSystemLog(`🎁 Bonus: +${MASTER_CODE_POINTS} points awarded!`, '#4CAF50');
     input.value = '';
+    input.focus();
     return;
   }
 
@@ -1189,18 +1207,21 @@ submitBtn.addEventListener('click', () => {
   if (!currentWordList.includes(playerWord)) {
     appendSystemLog(`❌ "${playerWord}" is not in dictionary`, '#FF6B6B');
     input.value = '';
+    input.focus();
     return;
   }
 
   if (expectedStartLetter && playerWord[0] !== expectedStartLetter) {
     appendSystemLog(`❌ Word must start with "${expectedStartLetter}"`, '#FF6B6B');
     input.value = '';
+    input.focus();
     return;
   }
 
   if (usedWords.includes(playerWord)) {
     appendSystemLog(`❌ "${playerWord}" was already used`, '#FF6B6B');
     input.value = '';
+    input.focus();
     return;
   }
 
@@ -1210,6 +1231,7 @@ submitBtn.addEventListener('click', () => {
     usedWords.push(playerWord);
     expectedStartLetter = playerWord[playerWord.length - 1];
     sendMove(playerWord);
+    input.value = '';
     
   } else if (gameMode === 'two-player') {
     appendToLog(playerWord, currentPlayer);
@@ -1217,6 +1239,8 @@ submitBtn.addEventListener('click', () => {
     expectedStartLetter = playerWord[playerWord.length - 1];
     currentPlayer = currentPlayer === 1 ? 2 : 1;
     input.placeholder = `Player ${currentPlayer}'s turn - start with "${expectedStartLetter}"`;
+    input.value = '';
+    input.focus(); // Auto-focus for local 2-player
     
   } else {
     // Computer mode
@@ -1238,6 +1262,8 @@ submitBtn.addEventListener('click', () => {
         appendToLog(blessing, 'computer');
         expectedStartLetter = blessing[blessing.length - 1];
         input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
+        input.value = '';
+        input.focus(); // Auto-focus
       }, 500);
       input.value = '';
       return;
@@ -1251,8 +1277,7 @@ submitBtn.addEventListener('click', () => {
 
     if (!computerWord) {
       appendSystemLog(`🎉 You win! I can't find a new word starting with "${lastLetter}".`, '#4CAF50');
-      input.disabled = true;
-      submitBtn.disabled = true;
+      setInputState(false, false);
       return;
     }
 
@@ -1266,10 +1291,12 @@ submitBtn.addEventListener('click', () => {
           appendToLog(blessing, 'computer');
           expectedStartLetter = blessing[blessing.length - 1];
           input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
+          input.focus(); // Auto-focus
         }, 500);
       } else {
         expectedStartLetter = computerWord[computerWord.length - 1];
         input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
+        input.focus(); // Auto-focus
       }
     }, 500);
   }
@@ -1280,8 +1307,7 @@ submitBtn.addEventListener('click', () => {
 // Reset game
 function resetGame() {
   input.value = '';
-  input.disabled = false;
-  submitBtn.disabled = false;
+  setInputState(true, true); // Enable and focus
   expectedStartLetter = null;
   usedWords = [];
   currentPlayer = 1;
@@ -1371,38 +1397,4 @@ languageSelect.addEventListener('change', () => {
 // Initialize
 setLanguage('english');
 updateHintButtonVisibility();
-
-// Automatically focus and select input when it's your turn
-function enableInput() {
-  input.disabled = false;
-  input.focus();
-  input.select();
-}
-
-// Disable input when it's not your turn
-function disableInput() {
-  input.disabled = true;
-  input.blur();
-}
-
-// Example integration (you may already have something like this):
-function nextTurn(currentPlayer) {
-  if (gameMode === 'two-player') {
-    if (currentPlayer === 'player1') {
-      disableInput(); // Wait for player 2
-    } else {
-      enableInput(); // Player 2's turn
-    }
-  } else if (gameMode === 'computer') {
-    if (currentPlayer === 'computer') {
-      disableInput(); // Computer plays
-    } else {
-      enableInput(); // Your turn
-    }
-  }
-}
-
-// Also make sure input auto-focuses when game starts:
-window.addEventListener('load', () => {
-  enableInput();
-});
+input.focus(); // Auto-focus on page load
