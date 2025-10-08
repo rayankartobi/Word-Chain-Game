@@ -52,9 +52,28 @@
 <div class="button-container">
 <button id="submit-btn">Submit</button>
 <button id="hint-btn" class="hint-btn">💡 Hint (3pts)</button>
-<button id="give-up-btn">Reset Game</button>
+<button id="give-up-btn">give up</button>
 </div>
 </div>
+
+<!-- Online Multiplayer Controls -->
+<div id="online-controls" style="display:none;">
+  <div class="online-section">
+    <button id="create-room-btn" class="online-btn">Create Room</button>
+    <button id="leave-room-btn" class="online-btn leave-btn" style="display:none;">Leave Room</button>
+    <div id="room-code-display" style="display:none;">
+      <p>Room Code: <strong id="room-code"></strong></p>
+      <p style="font-size:0.85rem;">Share this code with your friend!</p>
+    </div>
+  </div>
+  <div class="online-section">
+    <input type="text" id="join-code-input" placeholder="Enter room code" maxlength="6">
+    <button id="join-room-btn" class="online-btn">Join Room</button>
+  </div>
+  <div id="online-status"></div>
+</div>
+
+
 <!-- Toggle button -->
 <button id="toggle-info">ℹ️</button>
 <!-- Info panel -->
