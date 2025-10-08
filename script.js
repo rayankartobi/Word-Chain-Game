@@ -916,11 +916,6 @@ const wordBanks = {
 
 
 
-// Check if device is mobile
-function isMobileDevice() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-}
-
 // Set input state with conditional auto-focus
 function setInputState(enabled, shouldFocus = true) {
   input.disabled = !enabled;
