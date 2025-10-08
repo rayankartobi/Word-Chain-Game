@@ -10,6 +10,7 @@ const infoBox = document.getElementById('info-box');
 const onlineControls = document.getElementById('online-controls');
 const createRoomBtn = document.getElementById('create-room-btn');
 const joinRoomBtn = document.getElementById('join-room-btn');
+const leaveRoomBtn = document.getElementById('leave-room-btn');
 const joinCodeInput = document.getElementById('join-code-input');
 const roomCodeDisplay = document.getElementById('room-code-display');
 const roomCodeElement = document.getElementById('room-code');
@@ -25,14 +26,15 @@ let playerPoints = 0;
 let wordsPlayedCount = 0;
 const WORDS_FOR_POINT = 5;
 const HINT_COST = 3;
-const MASTER_CODE_POINTS = 5;
+const MASTER_CODE_POINTS = 3;
 
 // Online multiplayer state
 let currentRoomCode = null;
 let isHost = false;
 let playerNumber = 0;
 let roomRef = null;
-let lastProcessedTimestamp = 0; // Track last processed move
+let lastProcessedTimestamp = 0;
+let isConnected = true;
 
 // Special Muhammad words
 const muhammadWords = {
@@ -914,8 +916,6 @@ const wordBanks = {
 
 
 
-
-
 // Check if device is mobile
 function isMobileDevice() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
@@ -963,6 +963,55 @@ function updateOnlineStatus(message, color = '#2196F3') {
   onlineStatus.style.display = 'block';
 }
 
+// Show/hide leave button
+function updateLeaveButton(show) {
+  if (leaveRoomBtn) {
+    leaveRoomBtn.style.display = show ? 'inline-block' : 'none';
+  }
+}
+
+// Leave room function
+function leaveRoom() {
+  if (roomRef && currentRoomCode) {
+    // Notify opponent that you're leaving
+    roomRef.child('playerLeft').set({
+      playerNumber: playerNumber,
+      timestamp: Date.now()
+    });
+    
+    // Cleanup
+    roomRef.off();
+    roomRef = null;
+  }
+  
+  currentRoomCode = null;
+  isConnected = false;
+  playerNumber = 0;
+  lastProcessedTimestamp = 0;
+  
+  // Reset UI
+  createRoomBtn.disabled = false;
+  joinCodeInput.disabled = false;
+  joinRoomBtn.disabled = false;
+  roomCodeDisplay.style.display = 'none';
+  onlineStatus.style.display = 'none';
+  updateLeaveButton(false);
+  
+  // Clear game
+  gameLog.innerHTML = '';
+  appendSystemLog('📤 You left the room.', '#2196F3');
+  setInputState(false, false);
+}
+
+// Leave room button handler
+if (leaveRoomBtn) {
+  leaveRoomBtn.addEventListener('click', () => {
+    if (confirm('Are you sure you want to leave this room?')) {
+      leaveRoom();
+    }
+  });
+}
+
 // Create room
 createRoomBtn.addEventListener('click', async () => {
   const roomCode = generateRoomCode();
@@ -970,6 +1019,7 @@ createRoomBtn.addEventListener('click', async () => {
   isHost = true;
   playerNumber = 1;
   lastProcessedTimestamp = 0;
+  isConnected = true;
   
   roomRef = window.database.ref('rooms/' + roomCode);
   
@@ -987,12 +1037,13 @@ createRoomBtn.addEventListener('click', async () => {
   createRoomBtn.disabled = true;
   joinCodeInput.disabled = true;
   joinRoomBtn.disabled = true;
+  updateLeaveButton(true);
   
   updateOnlineStatus('Waiting for player 2...', '#FF9800');
   
   // Listen for player 2 joining
   roomRef.child('player2Id').on('value', (snapshot) => {
-    if (snapshot.val()) {
+    if (snapshot.val() && isConnected) {
       updateOnlineStatus('Player 2 joined! Game started!', '#4CAF50');
       startOnlineGame();
     }
@@ -1003,6 +1054,9 @@ createRoomBtn.addEventListener('click', async () => {
   
   // Listen for give up
   roomRef.child('giveUp').on('value', handleOpponentGiveUp);
+  
+  // Listen for player leaving
+  roomRef.child('playerLeft').on('value', handleOpponentLeft);
 });
 
 // Join room
@@ -1017,6 +1071,7 @@ joinRoomBtn.addEventListener('click', async () => {
   isHost = false;
   playerNumber = 2;
   lastProcessedTimestamp = 0;
+  isConnected = true;
   
   roomRef = window.database.ref('rooms/' + code);
   
@@ -1034,6 +1089,7 @@ joinRoomBtn.addEventListener('click', async () => {
   createRoomBtn.disabled = true;
   joinCodeInput.disabled = true;
   joinRoomBtn.disabled = true;
+  updateLeaveButton(true);
   
   startOnlineGame();
   
@@ -1042,7 +1098,25 @@ joinRoomBtn.addEventListener('click', async () => {
   
   // Listen for give up
   roomRef.child('giveUp').on('value', handleOpponentGiveUp);
+  
+  // Listen for player leaving
+  roomRef.child('playerLeft').on('value', handleOpponentLeft);
 });
+
+// Handle opponent leaving
+function handleOpponentLeft(snapshot) {
+  if (!snapshot.exists() || !isConnected) return;
+  
+  const leftData = snapshot.val();
+  if (leftData.playerNumber === playerNumber) return; // Ignore own leave
+  
+  appendSystemLog('📤 Your friend left the room!', '#FF6B6B');
+  setInputState(false, false);
+  input.placeholder = 'Your friend left the game...';
+  
+  // Show option to leave as well
+  updateOnlineStatus('Opponent disconnected. You can leave the room.', '#FF6B6B');
+}
 
 // Start online game
 function startOnlineGame() {
@@ -1059,7 +1133,7 @@ function startOnlineGame() {
 
 // Handle opponent's move (prevent duplicates)
 function handleOpponentMove(snapshot) {
-  if (!snapshot.exists()) return;
+  if (!snapshot.exists() || !isConnected) return;
   
   const move = snapshot.val();
   
@@ -1081,7 +1155,7 @@ function handleOpponentMove(snapshot) {
 
 // Handle opponent give up
 function handleOpponentGiveUp(snapshot) {
-  if (!snapshot.exists()) return;
+  if (!snapshot.exists() || !isConnected) return;
   
   const giveUpData = snapshot.val();
   if (giveUpData.playerNumber === playerNumber) return; // Ignore own give up
@@ -1121,7 +1195,7 @@ function resetGameForRematch() {
 
 // Send move to Firebase
 async function sendMove(word) {
-  if (!roomRef) return;
+  if (!roomRef || !isConnected) return;
   
   await roomRef.child('lastMove').set({
     word: word,
@@ -1139,7 +1213,7 @@ async function sendMove(word) {
 
 // Send give up notification
 async function sendGiveUp() {
-  if (!roomRef) return;
+  if (!roomRef || !isConnected) return;
   
   await roomRef.child('giveUp').set({
     playerNumber: playerNumber,
@@ -1149,26 +1223,30 @@ async function sendGiveUp() {
 
 // Game mode change
 gameModeSelect.addEventListener('change', () => {
+  // Clean up any existing room connection
+  if (roomRef) {
+    roomRef.off();
+    roomRef = null;
+  }
+  
   gameMode = gameModeSelect.value;
+  isConnected = false;
+  currentRoomCode = null;
   
   // Update button text
   if (gameMode === 'online') {
     giveUpBtn.textContent = 'Give Up';
     onlineControls.style.display = 'block';
-    // Disconnect from previous room
-    if (roomRef) {
-      roomRef.off();
-      roomRef = null;
-    }
-    currentRoomCode = null;
     createRoomBtn.disabled = false;
     joinCodeInput.disabled = false;
     joinRoomBtn.disabled = false;
     roomCodeDisplay.style.display = 'none';
     onlineStatus.style.display = 'none';
+    updateLeaveButton(false);
   } else {
     giveUpBtn.textContent = 'Give Up';
     onlineControls.style.display = 'none';
+    updateLeaveButton(false);
   }
   
   updateHintButtonVisibility();
@@ -1304,6 +1382,11 @@ submitBtn.addEventListener('click', () => {
 
   // Handle different game modes
   if (gameMode === 'online') {
+    if (!isConnected) {
+      appendSystemLog(`❌ Not connected to a room!`, '#FF6B6B');
+      return;
+    }
+    
     appendToLog(playerWord, playerNumber);
     usedWords.push(playerWord);
     expectedStartLetter = playerWord[playerWord.length - 1];
@@ -1379,7 +1462,7 @@ submitBtn.addEventListener('click', () => {
 
 // Give up / Reset game button
 giveUpBtn.addEventListener('click', () => {
-  if (gameMode === 'online' && currentRoomCode) {
+  if (gameMode === 'online' && currentRoomCode && isConnected) {
     // Send give up notification
     sendGiveUp();
     appendSystemLog('🏳️ You gave up! Starting new round...', '#FF9800');
@@ -1404,8 +1487,10 @@ function resetGame() {
   gameLog.innerHTML = '';
   
   if (gameMode === 'online') {
-    if (currentRoomCode) {
+    if (currentRoomCode && isConnected) {
       appendSystemLog(`🌐 Online game in room ${currentRoomCode}`, '#2196F3');
+    } else {
+      appendSystemLog(`🌐 Create or join a room to play online!`, '#2196F3');
     }
   } else if (gameMode === 'two-player') {
     appendSystemLog("🔁 Game reset. Player 1 starts with any word.", '#2196F3');
@@ -1449,7 +1534,7 @@ const infoTexts = {
       <li>Each word must start with the last letter of the previous word.</li>
       <li><strong>vs Computer:</strong> Earn 1 point every ${WORDS_FOR_POINT} words. Spend ${HINT_COST} points for a hint!</li>
       <li><strong>2 Players (Local):</strong> Take turns on the same device!</li>
-      <li><strong>Online Multiplayer:</strong> Create or join a room with a 6-digit code! Click "Give Up" to restart with same opponent.</li>
+      <li><strong>Online Multiplayer:</strong> Create or join a room! Use "Leave Room" button to disconnect.</li>
       <li><strong>Special:</strong> Say "Muhammad" and receive a blessing!</li>
     </ul>
   `,
@@ -1460,7 +1545,7 @@ const infoTexts = {
       <li>Tapez un mot en français.</li>
       <li><strong>vs Ordinateur:</strong> 1 point tous les ${WORDS_FOR_POINT} mots!</li>
       <li><strong>2 Joueurs:</strong> Jouez à tour de rôle!</li>
-      <li><strong>En ligne:</strong> Créez ou rejoignez une salle! "Give Up" pour recommencer.</li>
+      <li><strong>En ligne:</strong> Créez ou rejoignez! Utilisez "Leave Room" pour partir.</li>
     </ul>
   `,
   arabic: `
@@ -1468,7 +1553,7 @@ const infoTexts = {
     <ul>
       <li><strong>ضد الكمبيوتر:</strong> نقطة كل ${WORDS_FOR_POINT} كلمات!</li>
       <li><strong>لاعبان:</strong> العب مع صديق!</li>
-      <li><strong>عبر الإنترنت:</strong> أنشئ غرفة أو انضم! "Give Up" لإعادة البدء.</li>
+      <li><strong>عبر الإنترنت:</strong> أنشئ أو انضم! استخدم "Leave Room" للمغادرة.</li>
     </ul>
   `
 };
