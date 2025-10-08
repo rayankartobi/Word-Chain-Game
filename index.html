@@ -6,7 +6,33 @@
 <title>Word Chain Game</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="dark-theme theme-1">
+<!-- Theme chooser popup -->
+<div id="theme-chooser" class="hidden">
+  <div class="theme-chooser-content">
+    <h3>🎨 Choose a Theme</h3>
+    <div class="theme-options">
+      <h4>Light Themes</h4>
+      <button class="theme-option" data-mode="light-theme" data-theme="1">🌤️ Sky Blue</button>
+      <button class="theme-option" data-mode="light-theme" data-theme="2">🌿 Mint Glow</button>
+      <button class="theme-option" data-mode="light-theme" data-theme="3">☁️ Soft Gray</button>
+
+      <h4>Dark Themes</h4>
+      <button class="theme-option" data-mode="dark-theme" data-theme="1">🌌 Deep Space</button>
+      <button class="theme-option" data-mode="dark-theme" data-theme="2">🌊 Ocean Night</button>
+      <button class="theme-option" data-mode="dark-theme" data-theme="3">🌾 Forest Dusk</button>
+    </div>
+    <button id="close-theme-chooser">Close</button>
+  </div>
+</div>
+
+
+
+<!-- Theme Toggle Button -->
+<button id="theme-toggle" title="Toggle Theme">
+  <span class="theme-icon"></span>
+</button>
+
 <!-- Game Mode Selector - Top Left -->
 <div id="mode-box">
 <label for="game-mode">🎮 Mode:</label>
@@ -24,6 +50,7 @@
 <div id="online-controls" style="display:none;">
   <div class="online-section">
     <button id="create-room-btn" class="online-btn">Create Room</button>
+    <button id="leave-room-btn" class="online-btn leave-btn" style="display:none;">Leave Room</button>
     <div id="room-code-display" style="display:none;">
       <p>Room Code: <strong id="room-code"></strong></p>
       <p style="font-size:0.85rem;">Share this code with your friend!</p>
@@ -52,28 +79,9 @@
 <div class="button-container">
 <button id="submit-btn">Submit</button>
 <button id="hint-btn" class="hint-btn">💡 Hint (3pts)</button>
-<button id="give-up-btn">give up</button>
+<button id="give-up-btn">Give Up</button>
 </div>
 </div>
-
-<!-- Online Multiplayer Controls -->
-<div id="online-controls" style="display:none;">
-  <div class="online-section">
-    <button id="create-room-btn" class="online-btn">Create Room</button>
-    <button id="leave-room-btn" class="online-btn leave-btn" style="display:none;">Leave Room</button>
-    <div id="room-code-display" style="display:none;">
-      <p>Room Code: <strong id="room-code"></strong></p>
-      <p style="font-size:0.85rem;">Share this code with your friend!</p>
-    </div>
-  </div>
-  <div class="online-section">
-    <input type="text" id="join-code-input" placeholder="Enter room code" maxlength="6">
-    <button id="join-room-btn" class="online-btn">Join Room</button>
-  </div>
-  <div id="online-status"></div>
-</div>
-
-
 <!-- Toggle button -->
 <button id="toggle-info">ℹ️</button>
 <!-- Info panel -->
@@ -91,6 +99,25 @@
 <footer class="signature">
  by Rayan Kartobi.
 </footer>
+<!-- Theme chooser popup -->
+<div id="theme-chooser" class="hidden">
+  <div class="theme-chooser-content">
+    <h3>Choose a Theme</h3>
+    <div class="theme-options">
+      <h4>Light Themes</h4>
+      <button class="theme-option" data-mode="light-theme" data-theme="1">🌸 Blush Mist</button>
+      <button class="theme-option" data-mode="light-theme" data-theme="2">💗 Soft Glow</button>
+      <button class="theme-option" data-mode="light-theme" data-theme="3">🌷 Rosy Sky</button>
+
+      <h4>Dark Themes</h4>
+      <button class="theme-option" data-mode="dark-theme" data-theme="1">🌙 Midnight Blue</button>
+      <button class="theme-option" data-mode="dark-theme" data-theme="2">🖤 Deep Ocean</button>
+      <button class="theme-option" data-mode="dark-theme" data-theme="3">💜 Space Mist</button>
+    </div>
+    <button id="close-theme-chooser">Close</button>
+  </div>
+</div>
+
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -114,5 +141,6 @@
 </script>
 
 <script src="script.js"></script>
+
 </body>
 </html>
