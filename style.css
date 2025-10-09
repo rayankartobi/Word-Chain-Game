@@ -625,13 +625,13 @@ body.light-theme #theme-toggle .theme-icon::before {
   #mode-box {
     top: 10px;
     left: 10px;
-    padding: 6px 10px;
+    padding: 4px 8px;
     gap: 5px;
-    border-radius: 10px;
+    border-radius: 5px;
   }
   
   #mode-box label {
-    font-size: 0.75rem;
+    font-size: 0.5rem;
   }
   
   #mode-box select {
@@ -640,7 +640,7 @@ body.light-theme #theme-toggle .theme-icon::before {
   }
   
   #theme-toggle {
-    top: 75px;
+    top: 80px;
     left: 50%;
     transform: translateX(-50%);
     width: 35px;
