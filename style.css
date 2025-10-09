@@ -640,7 +640,7 @@ body.light-theme #theme-toggle .theme-icon::before {
   }
   
   #theme-toggle {
-    top: 80px;
+    top: 60px;
     left: 50%;
     transform: translateX(-50%);
     width: 30px;
