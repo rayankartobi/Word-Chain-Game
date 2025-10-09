@@ -1506,7 +1506,7 @@ function listenToRoom() {
     // Check for give up message
     if (data.giveUpTimestamp && data.giveUpTimestamp > lastProcessedTimestamp) {
       if (data.giveUpPlayer !== playerNumber) {
-        addLog(`😔 Player ${data.giveUpPlayer} gave up!`, 'error');
+        addLog(`🏳️ Player ${data.giveUpPlayer} gave up!`, 'error');
         
         // Check if they became a spectator
         if (data.spectators && data.spectators[data.giveUpPlayer]) {
@@ -1571,7 +1571,7 @@ function giveUpOnline() {
       [`spectators/${playerNumber}`]: true
     });
     
-    addLog('😔 You gave up!', 'error');
+    addLog('🏳️ You gave up!', 'error');
     
     if (activePlayers <= 2) {
       // If 2 or fewer players, reset the game for everyone
