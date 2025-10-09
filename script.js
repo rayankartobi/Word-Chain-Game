@@ -5,7 +5,7 @@ const gameLog = document.getElementById('game-log');
 const languageSelect = document.getElementById('language');
 const gameModeSelect = document.getElementById('game-mode');
 const infoBox = document.getElementById('info-box');
-
+const toggleInfoBtn = document.getElementById('toggle-info');
 
 // Online multiplayer elements
 const onlineControls = document.getElementById('online-controls');
@@ -36,8 +36,8 @@ let playerNumber = 0;
 let roomRef = null;
 let lastProcessedTimestamp = 0;
 let isConnected = false;
-let lightThemeIndex = 1;
-let darkThemeIndex = 1;
+let MAX_PLAYERS = 4;
+let isSpectator = false;
 
 // Special Muhammad words
 const muhammadWords = {
@@ -917,716 +917,851 @@ const wordBanks = {
   ]
 };
 
-function setTheme(mode, theme) {
-  document.body.classList.remove('light-theme', 'dark-theme');
-  document.body.classList.add(mode);
+// Info box toggle functionality
+if (toggleInfoBtn) {
+  toggleInfoBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    infoBox.classList.toggle('show');
+  });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const themeToggle = document.getElementById('theme-toggle');
-  const themeChooser = document.getElementById('theme-chooser');
-  const closeChooser = document.getElementById('close-theme-chooser');
-  const themeOptions = document.querySelectorAll('.theme-option');
-
-  // Close popup
-  closeChooser.addEventListener('click', () => {
-    themeChooser.classList.add('active');
-  });
-
-  // When user picks a theme
-  themeOptions.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const mode = btn.getAttribute('data-mode');
-      const theme = btn.getAttribute('data-theme');
-
-      document.body.className = ''; // clear all previous
-      document.body.classList.add(mode, `theme-${theme}`);
-
-      themeChooser.classList.add('hidden');
-    });
-  });
+// Close info box when clicking outside
+document.addEventListener('click', (e) => {
+  if (infoBox && !infoBox.contains(e.target) && e.target !== toggleInfoBtn) {
+    infoBox.classList.remove('show');
+  }
 });
 
+// Theme functionality
+const themeToggle = document.getElementById('theme-toggle');
+const themeChooser = document.getElementById('theme-chooser');
+const closeThemeChooser = document.getElementById('close-theme-chooser');
+const themeOptions = document.querySelectorAll('.theme-option');
 
-
-// Check if device is mobile
-function isMobileDevice() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+if (themeToggle) {
+  themeToggle.addEventListener('click', () => {
+    themeChooser.classList.add('active');
+    themeChooser.classList.remove('hidden');
+  });
 }
 
-// Set input state
-function setInputState(enabled, shouldFocus = true) {
-  input.disabled = !enabled;
-  submitBtn.disabled = !enabled;
-  
-  if (enabled && shouldFocus && gameMode === 'online' && !isMobileDevice()) {
-    setTimeout(() => input.focus(), 100);
-  }
-  
-  if (!enabled) {
-    input.style.cursor = 'not-allowed';
-    input.style.opacity = '0.6';
-  } else {
-    input.style.cursor = 'text';
-    input.style.opacity = '1';
-  }
+if (closeThemeChooser) {
+  closeThemeChooser.addEventListener('click', () => {
+    themeChooser.classList.remove('active');
+    themeChooser.classList.add('hidden');
+  });
 }
 
-// Remove waiting message
-function removeWaitingMessage() {
-  const logDivs = gameLog.querySelectorAll('div');
-  logDivs.forEach(div => {
-    if (div.textContent.includes('Waiting for opponent')) {
-      div.remove();
+if (themeChooser) {
+  themeChooser.addEventListener('click', (e) => {
+    if (e.target === themeChooser) {
+      themeChooser.classList.remove('active');
+      themeChooser.classList.add('hidden');
     }
   });
 }
 
-// Generate random 6-digit room code
-function generateRoomCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+themeOptions.forEach(option => {
+  option.addEventListener('click', () => {
+    const mode = option.dataset.mode;
+    const theme = option.dataset.theme;
+    document.body.className = `${mode} theme-${theme}`;
+    themeChooser.classList.remove('active');
+    themeChooser.classList.add('hidden');
+  });
+});
 
-// Update online status
-function updateOnlineStatus(message, color = '#2196F3') {
-  if (onlineStatus) {
-    onlineStatus.textContent = message;
-    onlineStatus.style.backgroundColor = color;
-    onlineStatus.style.color = 'white';
-    onlineStatus.style.display = 'block';
-  }
-}
-
-// Show/hide leave button
-function updateLeaveButton(show) {
-  if (leaveRoomBtn) {
-    leaveRoomBtn.style.display = show ? 'inline-block' : 'none';
-  }
-}
-
-// Leave room
-function leaveRoom() {
-  if (roomRef && currentRoomCode) {
-    roomRef.child('playerLeft').set({
-      playerNumber: playerNumber,
-      timestamp: Date.now()
-    });
-    roomRef.off();
-    roomRef = null;
+// Game mode change handler
+gameModeSelect.addEventListener('change', () => {
+  gameMode = gameModeSelect.value;
+  
+  if (gameMode === 'online') {
+    onlineControls.style.display = 'block';
+  } else {
+    onlineControls.style.display = 'none';
+    if (isConnected) {
+      leaveRoom();
+    }
   }
   
-  currentRoomCode = null;
+  updateButtonVisibility(); // Add this line
+  resetGame();
+});
+
+// Language change handler
+languageSelect.addEventListener('change', () => {
+  currentLanguage = languageSelect.value;
+  currentWordList = wordBanks[currentLanguage];
+  resetGame();
+});
+
+function focusInput() {
+  if (input && !input.disabled) {
+    input.focus();
+  }
+}
+
+function updateInputPlaceholder() {
+  if (expectedStartLetter) {
+    input.placeholder = `Type a word starting with "${expectedStartLetter}"...`;
+  } else {
+    input.placeholder = 'Type your word...';
+  }
+}
+
+
+// Initialize game
+function resetGame() {
+  currentWordList = wordBanks[currentLanguage];
+  usedWords = [];
+  expectedStartLetter = null;
+  gameLog.innerHTML = '';
+  input.value = '';
+  currentPlayer = 1;
+  playerPoints = 0;
+  wordsPlayedCount = 0;
+  updatePointsDisplay();
+  updateButtonVisibility();
+  updateInputPlaceholder(); // Add this line
+  
+  if (gameMode === 'online' && roomRef) {
+    roomRef.child('usedWords').set([]);
+    roomRef.child('expectedLetter').set(null);
+    roomRef.child('currentPlayer').set(1);
+  }
+  
+  // Simplified welcome messages
+  if (gameMode === 'computer') {
+    addLog('🎮 vs Computer Mode', 'info');
+    setTimeout(focusInput, 300);
+  } else if (gameMode === 'two-player') {
+    addLog('🎮 2-Player Local Mode', 'info');
+    setTimeout(focusInput, 300);
+  } else {
+    addLog('🎮 Online Multiplayer Mode', 'online');
+  }
+}
+
+// Points display
+function updatePointsDisplay() {
+  const pointsDisplay = document.getElementById('points-display');
+  if (gameMode === 'computer') {
+    pointsDisplay.style.display = 'block';
+    pointsDisplay.textContent = `Points: ${playerPoints}`;
+  } else {
+    pointsDisplay.style.display = 'none';
+  }
+}
+
+// Hint button
+document.getElementById('hint-btn').addEventListener('click', () => {
+  if (gameMode !== 'computer') {
+    addLog('❌ Hints only in vs Computer mode!', 'error');
+    return;
+  }
+  
+  if (playerPoints < HINT_COST) {
+    addLog(`❌ Need ${HINT_COST} points for hint! (You have ${playerPoints})`, 'error');
+    return;
+  }
+  
+  if (!expectedStartLetter) {
+    addLog('❌ No hint available yet!', 'error');
+    return;
+  }
+  
+  const hints = currentWordList.filter(w => 
+    w[0].toLowerCase() === expectedStartLetter && 
+    !usedWords.includes(w.toLowerCase())
+  );
+  
+  if (hints.length > 0) {
+    playerPoints -= HINT_COST;
+    updatePointsDisplay();
+    const hint = hints[Math.floor(Math.random() * hints.length)];
+    addLog(`💡 Hint: Try "${hint}"`, 'hint');
+  } else {
+    addLog('❌ No hints available!', 'error');
+  }
+});
+
+// Submit button
+submitBtn.addEventListener('click', handleSubmit);
+input.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') handleSubmit();
+});
+
+function updateButtonVisibility() {
+  const hintBtn = document.getElementById('hint-btn');
+  
+  if (gameMode === 'computer') {
+    hintBtn.style.display = 'inline-block';
+  } else {
+    hintBtn.style.display = 'none';
+  }
+}
+
+function handleSubmit() {
+  const word = input.value.trim().toLowerCase();
+  input.value = '';
+  
+  if (!word) return;
+  
+  // Check for master code
+  if (word === MASTER_CODE && gameMode === 'computer') {
+    playerPoints += MASTER_CODE_POINTS;
+    updatePointsDisplay();
+    addLog(`Hello Master Rayan Kartobi!🫡`, 'special');
+    addLog(`🎁 Bonus: +${MASTER_CODE_POINTS} points`, 'success');
+    return;
+  }
+  
+  // Check for Muhammad
+  if (muhammadWords[currentLanguage].includes(word)) {
+    addLog(`✨ ${blessings[currentLanguage]} ✨`, 'special');
+    return;
+  }
+  
+  if (gameMode === 'online') {
+    submitWordOnline(word);
+  } else {
+    validateAndProcess(word);
+  }
+}
+
+function validateAndProcess(word) {
+  if (!currentWordList.includes(word)) {
+    addLog(`❌ "${word}" not in dictionary!`, 'error');
+    focusInput();
+    return;
+  }
+  
+  if (usedWords.includes(word)) {
+    addLog(`❌ "${word}" already used!`, 'error');
+    focusInput();
+    return;
+  }
+  
+  if (expectedStartLetter && word[0] !== expectedStartLetter) {
+    addLog(`❌ Must start with "${expectedStartLetter}"!`, 'error');
+    focusInput();
+    return;
+  }
+  
+  usedWords.push(word);
+  const lastLetter = word[word.length - 1];
+  expectedStartLetter = lastLetter;
+  updateInputPlaceholder(); // Add this line
+  
+  if (gameMode === 'computer') {
+    wordsPlayedCount++;
+    if (wordsPlayedCount % WORDS_FOR_POINT === 0) {
+      playerPoints++;
+      updatePointsDisplay();
+      addLog(`🎉 +1 Point! Total: ${playerPoints}`, 'success');
+    }
+    addLog(`You: ${word}`, 'player');
+    setTimeout(computerTurn, 1000);
+  } else if (gameMode === 'two-player') {
+    addLog(`Player ${currentPlayer}: ${word}`, `player${currentPlayer}`);
+    currentPlayer = currentPlayer === 1 ? 2 : 1;
+    setTimeout(() => {
+      focusInput();
+      addLog(`🎯 Player ${currentPlayer}'s turn!`, 'info');
+    }, 300);
+  }
+}
+
+function computerTurn() {
+  const possible = currentWordList.filter(w => 
+    w[0] === expectedStartLetter && !usedWords.includes(w)
+  );
+  
+  if (possible.length === 0) {
+    addLog('🎉 You Win! Computer gave up!', 'success');
+    setTimeout(resetGame, 2000);
+    return;
+  }
+  
+  const compWord = possible[Math.floor(Math.random() * possible.length)];
+  usedWords.push(compWord);
+  expectedStartLetter = compWord[compWord.length - 1];
+  updateInputPlaceholder(); // Add this line
+  addLog(`Computer: ${compWord}`, 'computer');
+  
+  // Auto-focus for player's next turn
+  setTimeout(() => {
+    focusInput();
+  }, 500);
+}
+
+// Give up button
+giveUpBtn.addEventListener('click', () => {
+  if (gameMode === 'online') {
+    giveUpOnline();
+    return;
+  }
+  
+  addLog('🏳️ You gave up!', 'error');
+  setTimeout(resetGame, 1500);
+});
+
+// Add log message
+function addLog(message, type = '') {
+  const div = document.createElement('div');
+  div.textContent = message;
+  if (type) div.className = type;
+  gameLog.appendChild(div);
+  gameLog.scrollTop = gameLog.scrollHeight;
+}
+
+// ===== ONLINE MULTIPLAYER =====
+
+function generateRoomCode() {
+  return Math.random().toString(36).substr(2, 6).toUpperCase();
+}
+
+function createRoom() {
+  if (isConnected) {
+    addLog('❌ Already in a room!', 'error');
+    return;
+  }
+  
+  if (!window.database) {
+    addLog('❌ Firebase not initialized!', 'error');
+    return;
+  }
+  
+  currentRoomCode = generateRoomCode();
+  roomRef = window.database.ref('rooms/' + currentRoomCode);
+  isHost = true;
+  playerNumber = 1;
+  
+  roomRef.set({
+    host: playerNumber,
+    players: { 1: true },
+    playerCount: 1,
+    maxPlayers: MAX_PLAYERS,
+    usedWords: [],
+    expectedLetter: null,
+    currentPlayer: 1,
+    gameStarted: false,
+    timestamp: Date.now()
+  }).then(() => {
+    roomCodeElement.textContent = currentRoomCode;
+    roomCodeDisplay.style.display = 'block';
+    createRoomBtn.style.display = 'none';
+    joinRoomBtn.disabled = true;
+    joinCodeInput.disabled = true;
+    leaveRoomBtn.style.display = 'inline-block';
+    
+    // Add start game button for host
+    const existingStartBtn = document.getElementById('start-game-btn');
+    if (existingStartBtn) {
+      existingStartBtn.remove();
+    }
+    
+    const startBtn = document.createElement('button');
+    startBtn.id = 'start-game-btn';
+    startBtn.className = 'online-btn';
+    startBtn.textContent = '🎮 Start Game';
+    startBtn.style.marginTop = '10px';
+    startBtn.addEventListener('click', startGame);
+    roomCodeDisplay.appendChild(startBtn);
+    
+    listenToRoom();
+    isConnected = true;
+    showStatus('Waiting for players...', 'success');
+    addLog(`✅ Room: ${currentRoomCode}`, 'success');
+  }).catch((error) => {
+    console.error('Error creating room:', error);
+    addLog('❌ Failed to create room!', 'error');
+  });
+}
+
+function startGame() {
+  if (!isHost || !roomRef) return;
+  
+  roomRef.once('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.playerCount >= 1) {
+      roomRef.update({
+        gameStarted: true,
+        usedWords: [],
+        expectedLetter: null,
+        currentPlayer: 1
+      });
+      
+      addLog(`🎮 Game started with ${data.playerCount} player(s)!`, 'success');
+      const startBtn = document.getElementById('start-game-btn');
+      if (startBtn) {
+        startBtn.style.display = 'none';
+      }
+      
+      // Reset placeholder
+      expectedStartLetter = null;
+      updateInputPlaceholder(); // Add this line
+      
+      // Auto-focus if you're player 1
+      if (playerNumber === 1) {
+        setTimeout(() => {
+          focusInput();
+          addLog('🎯 Your turn! Start the chain...', 'info');
+        }, 500);
+      }
+    }
+  });
+}
+
+function joinRoom() {
+  if (isConnected) {
+    addLog('❌ Already in a room!', 'error');
+    return;
+  }
+  
+  const code = joinCodeInput.value.trim().toUpperCase();
+  if (!code) {
+    showStatus('Enter a room code!', 'error');
+    return;
+  }
+  
+  roomRef = window.database.ref('rooms/' + code);
+  
+  roomRef.once('value', (snapshot) => {
+    if (!snapshot.exists()) {
+      showStatus('Room not found!', 'error');
+      roomRef = null;
+      return;
+    }
+    
+    const roomData = snapshot.val();
+    const currentPlayers = roomData.playerCount || 1;
+    
+    if (currentPlayers >= MAX_PLAYERS) {
+      showStatus('Room is full!', 'error');
+      roomRef = null;
+      return;
+    }
+    
+    playerNumber = currentPlayers + 1;
+    isHost = false;
+    currentRoomCode = code;
+    
+    roomRef.update({
+      [`players/${playerNumber}`]: true,
+      playerCount: playerNumber
+    });
+    
+    createRoomBtn.disabled = true;
+    joinRoomBtn.style.display = 'none';
+    joinCodeInput.disabled = true;
+    leaveRoomBtn.style.display = 'inline-block';
+    
+    listenToRoom();
+    isConnected = true;
+    showStatus(`You are Player ${playerNumber}`, 'success');
+    addLog(`✅ Joined as Player ${playerNumber}`, 'success');
+  });
+}
+
+function leaveRoom() {
+  if (!isConnected) return;
+  
+  // Remove listener before cleaning up
+  if (roomRef) {
+    try {
+      roomRef.off('value');
+    } catch (error) {
+      console.log('Error removing listener:', error);
+    }
+    
+    // Remove player/spectator from room
+    if (playerNumber > 0) {
+      roomRef.child(`players/${playerNumber}`).remove();
+      roomRef.child(`spectators/${playerNumber}`).remove();
+    }
+    
+    // If host, delete entire room, otherwise update player count
+    if (isHost) {
+      roomRef.remove().catch(err => console.log('Error removing room:', err));
+    } else {
+      if (!isSpectator) {
+        roomRef.once('value', (snapshot) => {
+          const data = snapshot.val();
+          if (data && data.players) {
+            const remainingPlayers = Object.keys(data.players).filter(p => p !== String(playerNumber)).length;
+            if (remainingPlayers > 0) {
+              roomRef.update({ playerCount: remainingPlayers }).catch(err => console.log('Error updating count:', err));
+            }
+          }
+        }).catch(err => console.log('Error reading room:', err));
+      }
+    }
+  }
+  
+  // Reset all state
+  roomRef = null;
   isConnected = false;
+  isHost = false;
+  isSpectator = false;
+  currentRoomCode = null;
   playerNumber = 0;
   lastProcessedTimestamp = 0;
   
-  if (createRoomBtn) createRoomBtn.disabled = false;
-  if (joinCodeInput) joinCodeInput.disabled = false;
-  if (joinRoomBtn) joinRoomBtn.disabled = false;
-  if (roomCodeDisplay) roomCodeDisplay.style.display = 'none';
-  if (onlineStatus) onlineStatus.style.display = 'none';
-  updateLeaveButton(false);
+  // Re-enable inputs
+  input.disabled = false;
+  submitBtn.disabled = false;
+  giveUpBtn.disabled = false;
   
-  gameLog.innerHTML = '';
-  appendSystemLog('📤 You left the room.', '#2196F3');
-  setInputState(false, false);
+  // Reset UI
+  roomCodeDisplay.style.display = 'none';
+  createRoomBtn.style.display = 'inline-block';
+  createRoomBtn.disabled = false;
+  joinRoomBtn.style.display = 'inline-block';
+  joinRoomBtn.disabled = false;
+  joinCodeInput.disabled = false;
+  joinCodeInput.value = '';
+  leaveRoomBtn.style.display = 'none';
+  
+  const startBtn = document.getElementById('start-game-btn');
+  if (startBtn) startBtn.remove();
+  
+  onlineStatus.style.display = 'none';
+  addLog('👋 Left room', 'info');
+  resetGame();
 }
 
-// Leave room button
-if (leaveRoomBtn) {
-  leaveRoomBtn.addEventListener('click', () => {
-    if (confirm('Are you sure you want to leave this room?')) {
+function listenToRoom() {
+  if (!roomRef) return;
+  
+  // Remove any existing listeners first
+  roomRef.off('value');
+  
+  let lastResetTimestamp = 0;
+  let previousCurrentPlayer = 0;
+  
+  // Add new listener
+  roomRef.on('value', (snapshot) => {
+    if (!snapshot.exists()) {
+      if (isConnected) {
+        showStatus('Room closed', 'error');
+        addLog('❌ Room closed', 'error');
+        // Clean up without trying to access the deleted room
+        if (roomRef) {
+          roomRef.off('value');
+        }
+        roomRef = null;
+        isConnected = false;
+        isHost = false;
+        currentRoomCode = null;
+        playerNumber = 0;
+        isSpectator = false;
+        
+        // Re-enable inputs
+        input.disabled = false;
+        submitBtn.disabled = false;
+        giveUpBtn.disabled = false;
+        
+        // Reset UI
+        roomCodeDisplay.style.display = 'none';
+        createRoomBtn.style.display = 'inline-block';
+        createRoomBtn.disabled = false;
+        joinRoomBtn.style.display = 'inline-block';
+        joinRoomBtn.disabled = false;
+        joinCodeInput.disabled = false;
+        leaveRoomBtn.style.display = 'none';
+        
+        const startBtn = document.getElementById('start-game-btn');
+        if (startBtn) startBtn.remove();
+        
+        onlineStatus.style.display = 'none';
+      }
+      return;
+    }
+    
+    const data = snapshot.val();
+    
+    // Update player count display
+    if (isHost) {
+      showStatus(`Players: ${data.playerCount}/${MAX_PLAYERS}`, 'info');
+    } else if (isSpectator) {
+      showStatus('👁️ Spectating', 'info');
+    }
+    
+    // Check for game reset
+    if (data.resetTimestamp && data.resetTimestamp > lastResetTimestamp) {
+      lastResetTimestamp = data.resetTimestamp;
+      
+      if (!isSpectator) {
+        addLog('🔄 Game has been reset', 'info');
+        usedWords = [];
+        expectedStartLetter = null;
+        updateInputPlaceholder(); // Add this line
+        currentPlayer = 1;
+        gameLog.innerHTML = '';
+        addLog('🎮 Game reset - Ready to start!', 'info');
+      }
+    }
+    
+    // Check for give up message
+    if (data.giveUpTimestamp && data.giveUpTimestamp > lastProcessedTimestamp) {
+      if (data.giveUpPlayer !== playerNumber) {
+        addLog(`😔 Player ${data.giveUpPlayer} gave up!`, 'error');
+        
+        // Check if they became a spectator
+        if (data.spectators && data.spectators[data.giveUpPlayer]) {
+          addLog(`👁️ Player ${data.giveUpPlayer} is now spectating`, 'info');
+        }
+      }
+    }
+    
+    // Check if game started
+    if (data.gameStarted) {
+      usedWords = data.usedWords || [];
+      expectedStartLetter = data.expectedLetter;
+      updateInputPlaceholder(); // Add this line
+      currentPlayer = data.currentPlayer || 1;
+      
+      // Auto-focus input when it's your turn
+      if (currentPlayer === playerNumber && !isSpectator) {
+        if (previousCurrentPlayer !== currentPlayer) {
+          setTimeout(() => {
+            focusInput();
+            if (!expectedStartLetter) {
+              addLog('🎯 Your turn! Start the chain...', 'info');
+            } else {
+              addLog(`🎯 Your turn! Start with "${expectedStartLetter}"`, 'info');
+            }
+          }, 100);
+        }
+      }
+      
+      previousCurrentPlayer = currentPlayer;
+      
+      if (data.lastWord && data.lastWordTimestamp > lastProcessedTimestamp) {
+        lastProcessedTimestamp = data.lastWordTimestamp;
+        addLog(`Player ${data.lastPlayer}: ${data.lastWord}`, 'online');
+      }
+    }
+  }, (error) => {
+    console.error('Listener error:', error);
+    if (error.code === 'PERMISSION_DENIED') {
+      addLog('❌ Connection error', 'error');
       leaveRoom();
     }
   });
 }
 
-// Create room
-if (createRoomBtn) {
-  createRoomBtn.addEventListener('click', async () => {
-    if (!window.database) {
-      alert('Firebase not initialized. Please check your configuration.');
-      return;
-    }
-    
-    const roomCode = generateRoomCode();
-    currentRoomCode = roomCode;
-    isHost = true;
-    playerNumber = 1;
-    lastProcessedTimestamp = 0;
-    isConnected = true;
-    
-    roomRef = window.database.ref('rooms/' + roomCode);
-    
-    await roomRef.set({
-      hostId: Date.now(),
-      language: currentLanguage,
-      currentPlayer: 1,
-      expectedStartLetter: null,
-      usedWords: [],
-      createdAt: Date.now()
-    });
-    
-    roomCodeElement.textContent = roomCode;
-    roomCodeDisplay.style.display = 'block';
-    createRoomBtn.disabled = true;
-    joinCodeInput.disabled = true;
-    joinRoomBtn.disabled = true;
-    updateLeaveButton(true);
-    
-    updateOnlineStatus('Waiting for player 2...', '#FF9800');
-    
-    roomRef.child('player2Id').on('value', (snapshot) => {
-      if (snapshot.val() && isConnected) {
-        updateOnlineStatus('Player 2 joined! Game started!', '#4CAF50');
-        startOnlineGame();
-      }
-    });
-    
-    roomRef.child('lastMove').on('value', handleOpponentMove);
-    roomRef.child('giveUp').on('value', handleOpponentGiveUp);
-    roomRef.child('playerLeft').on('value', handleOpponentLeft);
-  });
-}
-
-// Join room
-if (joinRoomBtn) {
-  joinRoomBtn.addEventListener('click', async () => {
-    if (!window.database) {
-      alert('Firebase not initialized. Please check your configuration.');
-      return;
-    }
-    
-    const code = joinCodeInput.value.trim().toUpperCase();
-    if (!code || code.length !== 6) {
-      updateOnlineStatus('Invalid room code!', '#FF6B6B');
-      return;
-    }
-    
-    currentRoomCode = code;
-    isHost = false;
-    playerNumber = 2;
-    lastProcessedTimestamp = 0;
-    isConnected = true;
-    
-    roomRef = window.database.ref('rooms/' + code);
-    
-    const snapshot = await roomRef.once('value');
-    if (!snapshot.exists()) {
-      updateOnlineStatus('Room not found!', '#FF6B6B');
-      return;
-    }
-    
-    await roomRef.update({
-      player2Id: Date.now()
-    });
-    
-    updateOnlineStatus('Joined! Game started!', '#4CAF50');
-    createRoomBtn.disabled = true;
-    joinCodeInput.disabled = true;
-    joinRoomBtn.disabled = true;
-    updateLeaveButton(true);
-    
-    startOnlineGame();
-    
-    roomRef.child('lastMove').on('value', handleOpponentMove);
-    roomRef.child('giveUp').on('value', handleOpponentGiveUp);
-    roomRef.child('playerLeft').on('value', handleOpponentLeft);
-  });
-}
-
-// Handle opponent leaving
-function handleOpponentLeft(snapshot) {
-  if (!snapshot.exists() || !isConnected) return;
-  
-  const leftData = snapshot.val();
-  if (leftData.playerNumber === playerNumber) return;
-  
-  appendSystemLog('📤 Your friend left the room!', '#FF6B6B');
-  setInputState(false, false);
-  input.placeholder = 'Your friend left the game...';
-  updateOnlineStatus('Opponent disconnected. You can leave the room.', '#FF6B6B');
-}
-
-// Start online game
-function startOnlineGame() {
-  resetGame();
-  
-  if (playerNumber === 1) {
-    setInputState(true, true);
-    appendSystemLog('Your turn! Start with any word.', '#4CAF50');
-  } else {
-    setInputState(false, false);
-    appendSystemLog('Player 1 starts. Wait for their move...', '#2196F3');
+function giveUpOnline() {
+  if (!roomRef || !isConnected) {
+    addLog('❌ Not connected to room!', 'error');
+    return;
   }
-}
-
-// Handle opponent's move
-function handleOpponentMove(snapshot) {
-  if (!snapshot.exists() || !isConnected) return;
   
-  const move = snapshot.val();
-  if (move.playerNumber === playerNumber || move.timestamp <= lastProcessedTimestamp) return;
-  
-  lastProcessedTimestamp = move.timestamp;
-  
-  const word = move.word;
-  appendToLog(word, move.playerNumber);
-  usedWords.push(word);
-  expectedStartLetter = word[word.length - 1];
-  
-  removeWaitingMessage();
-  setInputState(true, true);
-  input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
-}
-
-// Handle opponent give up
-function handleOpponentGiveUp(snapshot) {
-  if (!snapshot.exists() || !isConnected) return;
-  
-  const giveUpData = snapshot.val();
-  if (giveUpData.playerNumber === playerNumber) return;
-  
-  appendSystemLog('🏳️ Opponent gave up! Starting new round...', '#FF9800');
-  setTimeout(() => resetGameForRematch(), 2000);
-}
-
-// Reset for rematch
-function resetGameForRematch() {
-  input.value = '';
-  expectedStartLetter = null;
-  usedWords = [];
-  gameLog.innerHTML = '';
-  lastProcessedTimestamp = 0;
-  
-  if (roomRef) {
+  roomRef.once('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+    
+    const activePlayers = data.playerCount || 0;
+    
+    // Broadcast give up message
     roomRef.update({
-      expectedStartLetter: null,
-      usedWords: [],
-      lastMove: null,
-      giveUp: null
+      giveUpPlayer: playerNumber,
+      giveUpTimestamp: Date.now(),
+      [`spectators/${playerNumber}`]: true
     });
-  }
-  
-  if (playerNumber === 1) {
-    setInputState(true, true);
-    appendSystemLog('New round! Your turn to start.', '#4CAF50');
-  } else {
-    setInputState(false, false);
-    appendSystemLog('New round! Waiting for Player 1...', '#2196F3');
-  }
-}
-
-// Send move
-async function sendMove(word) {
-  if (!roomRef || !isConnected) return;
-  
-  await roomRef.child('lastMove').set({
-    word: word,
-    playerNumber: playerNumber,
-    timestamp: Date.now()
-  });
-  
-  await roomRef.child('usedWords').set(usedWords);
-  await roomRef.child('expectedStartLetter').set(expectedStartLetter);
-  
-  setInputState(false, false);
-  appendSystemLog('Waiting for opponent...', '#2196F3');
-}
-
-// Send give up
-async function sendGiveUp() {
-  if (!roomRef || !isConnected) return;
-  
-  await roomRef.child('giveUp').set({
-    playerNumber: playerNumber,
-    timestamp: Date.now()
-  });
-}
-
-// Game mode change - Reset to computer mode on page load
-gameModeSelect.addEventListener('change', () => {
-  if (roomRef) {
-    roomRef.off();
-    roomRef = null;
-  }
-  
-  gameMode = gameModeSelect.value;
-  isConnected = false;
-  currentRoomCode = null;
-  
-  if (gameMode === 'online') {
-    if (onlineControls) onlineControls.style.display = 'block';
-    if (createRoomBtn) createRoomBtn.disabled = false;
-    if (joinCodeInput) joinCodeInput.disabled = false;
-    if (joinRoomBtn) joinRoomBtn.disabled = false;
-    if (roomCodeDisplay) roomCodeDisplay.style.display = 'none';
-    if (onlineStatus) onlineStatus.style.display = 'none';
-    updateLeaveButton(false);
-  } else {
-    if (onlineControls) onlineControls.style.display = 'none';
-    updateLeaveButton(false);
-  }
-  
-  updateHintButtonVisibility();
-  resetGame();
-});
-
-// Get random word
-function getRandomWord(startLetter = null) {
-  const filtered = startLetter 
-    ? currentWordList.filter(w => w[0].toLowerCase() === startLetter.toLowerCase()) 
-    : currentWordList;
-  if (filtered.length === 0) return null;
-  return filtered[Math.floor(Math.random() * filtered.length)];
-}
-
-// Update points display
-function updatePointsDisplay() {
-  const pointsDisplay = document.getElementById('points-display');
-  if (pointsDisplay) {
-    if (gameMode === 'computer') {
-      pointsDisplay.style.display = 'block';
-      pointsDisplay.textContent = `Points: ${playerPoints} | Words: ${wordsPlayedCount}/${WORDS_FOR_POINT}`;
+    
+    addLog('😔 You gave up!', 'error');
+    
+    if (activePlayers <= 2) {
+      // If 2 or fewer players, reset the game for everyone
+      roomRef.update({
+        gameStarted: false,
+        usedWords: [],
+        expectedLetter: null,
+        currentPlayer: 1,
+        resetTimestamp: Date.now()
+      });
+      addLog('🔄 Game reset - Too few players', 'info');
+      expectedStartLetter = null;
+      updateInputPlaceholder(); // Add this line
+      resetGame();
     } else {
-      pointsDisplay.style.display = 'none';
-    }
-  }
-}
-
-// Update hint button
-function updateHintButtonVisibility() {
-  const hintBtn = document.getElementById('hint-btn');
-  if (hintBtn) {
-    hintBtn.style.display = gameMode === 'computer' ? 'inline-block' : 'none';
-  }
-}
-
-// Add log entry
-function appendToLog(text, from = 'player') {
-  const div = document.createElement('div');
-  
-  if (gameMode === 'two-player' || gameMode === 'online') {
-    div.textContent = `Player ${from}: ${text}`;
-    div.style.color = from === 1 ? '#0077cc' : '#cc7700';
-  } else {
-    div.textContent = `${from === 'player' ? "You" : "Computer"}: ${text}`;
-    div.style.color = from === 'player' ? '#333' : '#0077cc';
-  }
-  
-  gameLog.appendChild(div);
-  gameLog.scrollTop = gameLog.scrollHeight;
-}
-
-// Add system message
-function appendSystemLog(text, color = '#FF6B6B') {
-  const div = document.createElement('div');
-  div.textContent = text;
-  div.style.color = color;
-  div.style.fontWeight = 'bold';
-  gameLog.appendChild(div);
-  gameLog.scrollTop = gameLog.scrollHeight;
-}
-
-// Check Muhammad word
-function isMuhammadWord(word) {
-  return muhammadWords[currentLanguage].includes(word.toLowerCase());
-}
-
-// Get hint
-function getHintWord() {
-  if (gameMode !== 'computer') return;
-  
-  if (playerPoints < HINT_COST) {
-    appendSystemLog(`❌ Need ${HINT_COST} points for a hint. You have ${playerPoints} points.`, '#FF6B6B');
-    return;
-  }
-  
-  if (!expectedStartLetter) {
-    appendSystemLog(`❌ No letter to hint for yet. Play a word first!`, '#FF6B6B');
-    return;
-  }
-  
-  const availableWords = currentWordList.filter(
-    w => w[0].toLowerCase() === expectedStartLetter.toLowerCase() && !usedWords.includes(w)
-  );
-  
-  if (availableWords.length === 0) {
-    appendSystemLog(`❌ No words available starting with "${expectedStartLetter}"`, '#FF6B6B');
-    return;
-  }
-  
-  const hintWord = availableWords[Math.floor(Math.random() * availableWords.length)];
-  playerPoints -= HINT_COST;
-  updatePointsDisplay();
-  appendSystemLog(`💡 Hint: "${hintWord}" (Cost: ${HINT_COST} points)`, '#9C27B0');
-}
-
-// Submit button
-submitBtn.addEventListener('click', () => {
-  const playerWord = input.value.trim().toLowerCase();
-  if (!playerWord) return;
-
-  if (gameMode === 'computer' && playerWord === MASTER_CODE && usedWords.length === 0) {
-    appendToLog("Hello Master Rayan Kartobi", 'computer');
-    playerPoints += MASTER_CODE_POINTS;
-    updatePointsDisplay();
-    appendSystemLog(`🎁 Bonus: +${MASTER_CODE_POINTS} points awarded!`, '#4CAF50');
-    input.value = '';
-    return;
-  }
-
-  if (!currentWordList.includes(playerWord)) {
-    appendSystemLog(`❌ "${playerWord}" is not in dictionary`, '#FF6B6B');
-    input.value = '';
-    return;
-  }
-
-  if (expectedStartLetter && playerWord[0] !== expectedStartLetter) {
-    appendSystemLog(`❌ Word must start with "${expectedStartLetter}"`, '#FF6B6B');
-    input.value = '';
-    return;
-  }
-
-  if (usedWords.includes(playerWord)) {
-    appendSystemLog(`❌ "${playerWord}" was already used`, '#FF6B6B');
-    input.value = '';
-    return;
-  }
-
-  if (gameMode === 'online') {
-    if (!isConnected) {
-      appendSystemLog(`❌ Not connected to a room!`, '#FF6B6B');
-      return;
-    }
-    appendToLog(playerWord, playerNumber);
-    usedWords.push(playerWord);
-    expectedStartLetter = playerWord[playerWord.length - 1];
-    sendMove(playerWord);
-    input.value = '';
-    
-  } else if (gameMode === 'two-player') {
-    appendToLog(playerWord, currentPlayer);
-    usedWords.push(playerWord);
-    expectedStartLetter = playerWord[playerWord.length - 1];
-    currentPlayer = currentPlayer === 1 ? 2 : 1;
-    input.placeholder = `Player ${currentPlayer}'s turn - start with "${expectedStartLetter}"`;
-    input.value = '';
-    
-  } else {
-    appendToLog(playerWord, 'player');
-    usedWords.push(playerWord);
-    wordsPlayedCount++;
-    
-    if (wordsPlayedCount >= WORDS_FOR_POINT) {
-      playerPoints++;
-      wordsPlayedCount = 0;
-      appendSystemLog(`🎯 5 words completed! +1 point awarded!`, '#FFD700');
-    }
-    
-    updatePointsDisplay();
-    
-    if (isMuhammadWord(playerWord)) {
-      setTimeout(() => {
-        const blessing = blessings[currentLanguage];
-        appendToLog(blessing, 'computer');
-        expectedStartLetter = blessing[blessing.length - 1];
-        input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
-        input.value = '';
-      }, 500);
-      input.value = '';
-      return;
-    }
-    
-    const lastLetter = playerWord[playerWord.length - 1];
-    const availableWords = currentWordList.filter(
-      w => w[0] === lastLetter && !usedWords.includes(w)
-    );
-    let computerWord = availableWords.length > 0 ? availableWords[Math.floor(Math.random() * availableWords.length)] : null;
-
-    if (!computerWord) {
-      appendSystemLog(`🎉 You win! I can't find a new word starting with "${lastLetter}".`, '#4CAF50');
-      setInputState(false, false);
-      return;
-    }
-
-    setTimeout(() => {
-      appendToLog(computerWord, 'computer');
-      usedWords.push(computerWord);
+      // More than 2 players - become spectator
+      isSpectator = true;
+      input.disabled = true;
+      submitBtn.disabled = true;
+      giveUpBtn.disabled = true;
       
-      if (isMuhammadWord(computerWord)) {
-        setTimeout(() => {
-          const blessing = blessings[currentLanguage];
-          appendToLog(blessing, 'computer');
-          expectedStartLetter = blessing[blessing.length - 1];
-          input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
-        }, 500);
-      } else {
-        expectedStartLetter = computerWord[computerWord.length - 1];
-        input.placeholder = `Your turn - start with "${expectedStartLetter}"`;
+      addLog('👁️ You are now spectating', 'info');
+      
+      // Update active player count
+      const newPlayerCount = activePlayers - 1;
+      roomRef.update({
+        playerCount: newPlayerCount
+      });
+      
+      // Check if only 1 active player left
+      if (newPlayerCount <= 1) {
+        roomRef.update({
+          gameStarted: false,
+          usedWords: [],
+          expectedLetter: null,
+          currentPlayer: 1,
+          resetTimestamp: Date.now()
+        });
+        addLog('🔄 Game reset - Only 1 player remaining', 'info');
       }
-    }, 500);
+    }
+  });
+}
+
+function submitWordOnline(word) {
+  if (!roomRef || !isConnected) {
+    showStatus('Not connected to room!', 'error');
+    return;
   }
-
-  input.value = '';
-});
-
-// Give up / Reset game button
-giveUpBtn.addEventListener('click', () => {
-  if (gameMode === 'online' && currentRoomCode && isConnected) {
-    // Send give up notification
-    sendGiveUp();
-    appendSystemLog('🏳️ You gave up! Starting new round...', '#FF9800');
-    setTimeout(() => {
-      resetGameForRematch();
-    }, 1000);
-  } else {
-    resetGame();
+  
+  if (isSpectator) {
+    addLog('👁️ Spectators cannot play!', 'error');
+    return;
   }
-});
+  
+  roomRef.once('value', (snapshot) => {
+    const data = snapshot.val();
+    
+    if (!data) {
+      addLog('❌ Room data not found!', 'error');
+      focusInput(); // Re-focus on error
+      return;
+    }
+    
+    if (!data.gameStarted) {
+      addLog('⏳ Waiting for host to start game...', 'error');
+      focusInput(); // Re-focus on error
+      return;
+    }
+    
+    if (data.currentPlayer !== playerNumber) {
+      addLog(`⏳ Wait for Player ${data.currentPlayer}'s turn!`, 'error');
+      focusInput(); // Re-focus on error
+      return;
+    }
+    
+    const currentUsed = data.usedWords || [];
+    const currentExpected = data.expectedLetter;
+    
+    if (!currentWordList.includes(word)) {
+      addLog(`❌ "${word}" not in dictionary!`, 'error');
+      focusInput(); // Re-focus on error
+      return;
+    }
+    
+    if (currentUsed.includes(word)) {
+      addLog(`❌ "${word}" already used!`, 'error');
+      focusInput(); // Re-focus on error
+      return;
+    }
+    
+    if (currentExpected && word[0] !== currentExpected) {
+      addLog(`❌ Must start with "${currentExpected}"!`, 'error');
+      focusInput(); // Re-focus on error
+      return;
+    }
+    
+    const newUsed = [...currentUsed, word];
+    const lastLetter = word[word.length - 1];
+    const nextPlayer = (data.currentPlayer % data.playerCount) + 1;
+    
+    roomRef.update({
+      usedWords: newUsed,
+      expectedLetter: lastLetter,
+      currentPlayer: nextPlayer,
+      lastWord: word,
+      lastPlayer: playerNumber,
+      lastWordTimestamp: Date.now()
+    });
+  });
+}
 
-// Reset game
-function resetGame() {
-  input.value = '';
-  setInputState(true, false); // Don't auto-focus on reset
-  expectedStartLetter = null;
+function showStatus(message, type) {
+  onlineStatus.textContent = message;
+  onlineStatus.style.display = 'block';
+  onlineStatus.style.backgroundColor = 
+    type === 'success' ? '#4CAF50' : 
+    type === 'error' ? '#f44336' : 
+    '#2196F3';
+  onlineStatus.style.color = 'white';
+}
+
+// Online multiplayer event listeners
+if (createRoomBtn) {
+  createRoomBtn.addEventListener('click', createRoom);
+}
+
+if (joinRoomBtn) {
+  joinRoomBtn.addEventListener('click', joinRoom);
+}
+
+if (leaveRoomBtn) {
+  leaveRoomBtn.addEventListener('click', leaveRoom);
+}
+// Reset game mode to default on page load
+// ===== PAGE REFRESH HANDLER =====
+window.addEventListener('load', () => {
+  // Reset game mode to computer
+  if (gameModeSelect) {
+    gameModeSelect.value = 'computer';
+    gameMode = 'computer';
+  }
+  
+  // Hide online controls
+  if (onlineControls) {
+    onlineControls.style.display = 'none';
+  }
+  
+  // Reset language to English
+  if (languageSelect) {
+    languageSelect.value = 'english';
+    currentLanguage = 'english';
+  }
+  
+  // Clean up any Firebase connections from previous session
+  if (isConnected && roomRef) {
+    try {
+      roomRef.off('value');
+    } catch (e) {
+      console.log('Cleanup on refresh:', e);
+    }
+    roomRef = null;
+    isConnected = false;
+    isHost = false;
+    isSpectator = false;
+    currentRoomCode = null;
+    playerNumber = 0;
+  }
+  
+  // Re-enable inputs
+  input.disabled = false;
+  submitBtn.disabled = false;
+  giveUpBtn.disabled = false;
+  
+  // Initialize word list
+  currentWordList = wordBanks[currentLanguage];
+  
+  // Reset game state
   usedWords = [];
-  currentPlayer = 1;
+  expectedStartLetter = null;
+  playerPoints = 0;
   wordsPlayedCount = 0;
   updatePointsDisplay();
-  updateHintButtonVisibility();
-  gameLog.innerHTML = '';
-  
-  if (gameMode === 'online') {
-    if (currentRoomCode && isConnected) {
-      appendSystemLog(`🌐 Online game in room ${currentRoomCode}`, '#2196F3');
-    } else {
-      appendSystemLog(`🌐 Create or join a room to play online!`, '#2196F3');
-    }
-  } else if (gameMode === 'two-player') {
-    appendSystemLog("🔁 Game reset. Player 1 starts with any word.", '#2196F3');
-    input.placeholder = "Player 1's turn - start with any word";
-  } else {
-    appendSystemLog("🔁 Game reset. Your points are saved! Start with any word.", '#2196F3');
-    input.placeholder = "Type your word...";
-  }
-}
-
-// Set language
-function setLanguage(lang) {
-  currentLanguage = lang;
-  currentWordList = wordBanks[lang];
-  resetGame();
-}
-
-// Event listeners
-const hintBtn = document.getElementById('hint-btn');
-if (hintBtn) {
-  hintBtn.addEventListener('click', getHintWord);
-}
-
-input.addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') {
-    submitBtn.click();
-  }
+  updateButtonVisibility();
+  updateInputPlaceholder(); // Add this line
 });
-
-const toggleBtn = document.getElementById('toggle-info');
-toggleBtn.addEventListener('click', () => {
-  infoBox.classList.toggle('show');
-});
-
-window.addEventListener('load', () => {
-  document.body.classList.add('loaded');
-});
-
-
-
-
-const infoTexts = {
-  english: `
-    <h3>Word Chain Game Info</h3>
-    <p>Welcome to the Word Chain Game!</p>
-    <ul>
-      <li>Type a word in English.</li>
-      <li>Each word must start with the last letter of the previous word.</li>
-      <li><strong>vs Computer:</strong> Earn 1 point every ${WORDS_FOR_POINT} words. Spend ${HINT_COST} points for a hint!</li>
-      <li><strong>2 Players (Local):</strong> Take turns on the same device!</li>
-      <li><strong>Online Multiplayer:</strong> Create or join a room! Use "Leave Room" button to disconnect.</li>
-      <li><strong>Special:</strong> Say "Muhammad" and receive a blessing!</li>
-    </ul>
-  `,
-  french: `
-    <h3>Info du Jeu de Chaîne de Mots</h3>
-    <p>Bienvenue!</p>
-    <ul>
-      <li>Tapez un mot en français.</li>
-      <li><strong>vs Ordinateur:</strong> 1 point tous les ${WORDS_FOR_POINT} mots!</li>
-      <li><strong>2 Joueurs:</strong> Jouez à tour de rôle!</li>
-      <li><strong>En ligne:</strong> Créez ou rejoignez! Utilisez "Leave Room" pour partir.</li>
-    </ul>
-  `,
-  arabic: `
-    <h3>معلومات اللعبة</h3>
-    <ul>
-      <li><strong>ضد الكمبيوتر:</strong> نقطة كل ${WORDS_FOR_POINT} كلمات!</li>
-      <li><strong>لاعبان:</strong> العب مع صديق!</li>
-      <li><strong>عبر الإنترنت:</strong> أنشئ أو انضم! استخدم "Leave Room" للمغادرة.</li>
-    </ul>
-  `
-};
-
-languageSelect.addEventListener('change', () => {
-  const lang = languageSelect.value;
-  infoBox.innerHTML = infoTexts[lang];
-  setLanguage(lang);
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-  const themeToggle = document.getElementById('theme-toggle');
-  const themeChooser = document.getElementById('theme-chooser');
-  const closeChooser = document.getElementById('close-theme-chooser');
-  const themeOptions = document.querySelectorAll('.theme-option');
-
-  // Default theme
-  document.body.classList.add('dark-theme', 'theme-1');
-
-  // 🎨 Single click → open chooser
-  themeToggle.addEventListener('click', (e) => {
-    e.preventDefault();
-    themeChooser.classList.add('active');
-  });
-
-  // ❌ Close chooser
-  closeChooser.addEventListener('click', () => {
-    themeChooser.classList.remove('active');
-  });
-
-  // ✅ Choose a theme
-  themeOptions.forEach(option => {
-    option.addEventListener('click', () => {
-      const mode = option.getAttribute('data-mode');
-      const theme = option.getAttribute('data-theme');
-
-      // Reset and apply new theme
-      document.body.className = '';
-      document.body.classList.add(mode, `theme-${theme}`);
-
-      // Hide popup
-      themeChooser.classList.remove('active');
-    });
-  });
-});
-
-
-
-
-// Force default game mode on refresh
-gameModeSelect.value = 'computer';
-gameMode = 'computer';
-if (onlineControls) onlineControls.style.display = 'none';
-updateLeaveButton(false);
 
 // Initialize
-setLanguage('english');
-updateHintButtonVisibility();
+currentWordList = wordBanks[currentLanguage];
+updatePointsDisplay();
+updateButtonVisibility();
+updateInputPlaceholder(); // Add this line
+addLog('🎮 Welcome! Type a word to start...', 'info');
