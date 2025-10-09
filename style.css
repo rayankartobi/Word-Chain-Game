@@ -640,11 +640,11 @@ body.light-theme #theme-toggle .theme-icon::before {
   }
   
   #theme-toggle {
-    top: 90px;
+    top: 60px;
     left: 50%;
     transform: translateX(-50%);
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     padding: 6px;
   }
   
@@ -653,14 +653,7 @@ body.light-theme #theme-toggle .theme-icon::before {
   }
   
   #theme-toggle .theme-icon {
-    font-size: 1rem;
-  }
-  
-  #toggle-info {
-    width: 35px;
-    height: 35px;
-    padding: 6px 8px;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
   }
   
   .online-btn {
