@@ -643,8 +643,8 @@ body.light-theme #theme-toggle .theme-icon::before {
     top: 80px;
     left: 50%;
     transform: translateX(-50%);
-    width: 35px;
-    height: 35px;
+    width: 30px;
+    height: 30px;
     padding: 6px;
   }
   
