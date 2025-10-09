@@ -7,26 +7,6 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="dark-theme theme-1">
-<!-- Theme chooser popup -->
-<div id="theme-chooser" class="hidden">
-  <div class="theme-chooser-content">
-    <h3>🎨 Choose a Theme</h3>
-    <div class="theme-options">
-      <h4>Light Themes</h4>
-      <button class="theme-option" data-mode="light-theme" data-theme="1">🌤️ Sky Blue</button>
-      <button class="theme-option" data-mode="light-theme" data-theme="2">🌿 Mint Glow</button>
-      <button class="theme-option" data-mode="light-theme" data-theme="3">☁️ Soft Gray</button>
-
-      <h4>Dark Themes</h4>
-      <button class="theme-option" data-mode="dark-theme" data-theme="1">🌌 Deep Space</button>
-      <button class="theme-option" data-mode="dark-theme" data-theme="2">🌊 Ocean Night</button>
-      <button class="theme-option" data-mode="dark-theme" data-theme="3">🌾 Forest Dusk</button>
-    </div>
-    <button id="close-theme-chooser">Close</button>
-  </div>
-</div>
-
-
 
 <!-- Theme Toggle Button -->
 <button id="theme-toggle" title="Toggle Theme">
@@ -53,7 +33,7 @@
     <button id="leave-room-btn" class="online-btn leave-btn" style="display:none;">Leave Room</button>
     <div id="room-code-display" style="display:none;">
       <p>Room Code: <strong id="room-code"></strong></p>
-      <p style="font-size:0.85rem;">Share this code with your friend!</p>
+      <p style="font-size:0.85rem;">Share this code with your friends!</p>
     </div>
   </div>
   <div class="online-section">
@@ -82,8 +62,10 @@
 <button id="give-up-btn">Give Up</button>
 </div>
 </div>
+
 <!-- Toggle button -->
 <button id="toggle-info">ℹ️</button>
+
 <!-- Info panel -->
 <div id="info-box">
 <h3>Word Chain Game Info</h3>
@@ -93,38 +75,38 @@
 <li>Each word must start with the last letter of the previous word.</li>
 <li><strong>vs Computer:</strong> Earn 1 point every 5 words. Spend 3 points for a hint!</li>
 <li><strong>2 Players (Local):</strong> Take turns on the same device!</li>
-<li><strong>Online Multiplayer:</strong> Create a room or join with a code to play with friends!</li>
+<li><strong>Online Multiplayer:</strong> Create a room or join with a code to play with up to 4 friends!</li>
 </ul>
 </div>
+
 <footer class="signature">
  by Rayan Kartobi.
 </footer>
+
 <!-- Theme chooser popup -->
 <div id="theme-chooser" class="hidden">
   <div class="theme-chooser-content">
-    <h3>Choose a Theme</h3>
+    <h3>🎨 Choose a Theme</h3>
     <div class="theme-options">
       <h4>Light Themes</h4>
-      <button class="theme-option" data-mode="light-theme" data-theme="1">🌸 Blush Mist</button>
-      <button class="theme-option" data-mode="light-theme" data-theme="2">💗 Soft Glow</button>
-      <button class="theme-option" data-mode="light-theme" data-theme="3">🌷 Rosy Sky</button>
+      <button class="theme-option" data-mode="light-theme" data-theme="1">🌤️ Sky Blue</button>
+      <button class="theme-option" data-mode="light-theme" data-theme="2">🌿 Mint Glow</button>
+      <button class="theme-option" data-mode="light-theme" data-theme="3">☁️ Soft Gray</button>
 
       <h4>Dark Themes</h4>
-      <button class="theme-option" data-mode="dark-theme" data-theme="1">🌙 Midnight Blue</button>
-      <button class="theme-option" data-mode="dark-theme" data-theme="2">🖤 Deep Ocean</button>
-      <button class="theme-option" data-mode="dark-theme" data-theme="3">💜 Space Mist</button>
+      <button class="theme-option" data-mode="dark-theme" data-theme="1">🌌 Deep Space</button>
+      <button class="theme-option" data-mode="dark-theme" data-theme="2">🌊 Ocean Night</button>
+      <button class="theme-option" data-mode="dark-theme" data-theme="3">🌾 Forest Dusk</button>
     </div>
     <button id="close-theme-chooser">Close</button>
   </div>
 </div>
-
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <script>
-  // PASTE YOUR FIREBASE CONFIG HERE (from Step 3)
   const firebaseConfig = {
   apiKey: "AIzaSyAoksVrgWA0OfAQJdate4KHnUmD9RRTYPk",
   authDomain: "wordchaingame-fff1d.firebaseapp.com",
@@ -135,7 +117,6 @@
   appId: "1:222680893387:web:bf21cbb32919346571d84e"
 };
   
-  // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   window.database = firebase.database();
 </script>
