@@ -208,7 +208,7 @@ box-shadow: 0 0 8px rgba(33, 147, 176, 0.4);
 position: fixed;
 top: 15px;
 right: 15px;
-z-index: 1001;
+z-index: 1005;
 background: rgba(255,255,255,0.9);
 border: none;
 padding: 8px 12px;
@@ -248,7 +248,7 @@ background: rgba(255,255,255,1);
   pointer-events: none;
   transform: translateY(-10px);
   transition: all 0.3s ease;
-  z-index: 1000;
+  z-index: 1004;
   max-height: 80vh;
   overflow-y: auto;
   box-sizing: border-box;
@@ -625,13 +625,13 @@ body.light-theme #theme-toggle .theme-icon::before {
   #mode-box {
     top: 10px;
     left: 10px;
-    padding: 4px 8px;
+    padding: 6px 10px;
     gap: 5px;
-    border-radius: 5px;
+    border-radius: 10px;
   }
   
   #mode-box label {
-    font-size: 0.5rem;
+    font-size: 0.75rem;
   }
   
   #mode-box select {
@@ -654,6 +654,13 @@ body.light-theme #theme-toggle .theme-icon::before {
   
   #theme-toggle .theme-icon {
     font-size: 0.95rem;
+  }
+  
+  #toggle-info {
+    width: 35px;
+    height: 35px;
+    padding: 6px 8px;
+    font-size: 0.9rem;
   }
   
   .online-btn {
