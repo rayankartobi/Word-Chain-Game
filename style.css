@@ -83,6 +83,121 @@ box-sizing: border-box;
 word-wrap: break-word;
 }
 
+/* Game Log Message Colors */
+#game-log .player {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .computer {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .player1 {
+  background: linear-gradient(135deg, #FF9800, #F57C00);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .player2 {
+  background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+/* Online multiplayer - different colors for each player */
+#game-log .online-player1 {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .online-player2 {
+  background: linear-gradient(135deg, #FF9800, #F57C00);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .online-player3 {
+  background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .online-player4 {
+  background: linear-gradient(135deg, #E91E63, #C2185B);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .success {
+  background: linear-gradient(135deg, #66BB6A, #4CAF50);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .error {
+  background: linear-gradient(135deg, #EF5350, #E53935);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .info {
+  background: linear-gradient(135deg, #42A5F5, #2196F3);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .hint {
+  background: linear-gradient(135deg, #FFA726, #FF9800);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+#game-log .special {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #1a1a1a;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  text-align: center;
+}
+
+#game-log .online {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
 #game-log div {
 margin-bottom: 5px;
 padding: 4px 6px;
@@ -208,7 +323,7 @@ box-shadow: 0 0 8px rgba(33, 147, 176, 0.4);
 position: fixed;
 top: 15px;
 right: 15px;
-z-index: 1010;
+z-index: 1005;
 background: rgba(255,255,255,0.9);
 border: none;
 padding: 8px 12px;
@@ -248,7 +363,7 @@ background: rgba(255,255,255,1);
   pointer-events: none;
   transform: translateY(-10px);
   transition: all 0.3s ease;
-  z-index: 1008;
+  z-index: 1004;
   max-height: 80vh;
   overflow-y: auto;
   box-sizing: border-box;
