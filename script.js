@@ -79,10 +79,9 @@ async function loadWordBank(language) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     wordBankCache[language] = data;
-    addLog(`✅ ${language.charAt(0).toUpperCase() + language.slice(1)} dictionary loaded (${data.length.toLocaleString()} words)`, 'success');
     return data;
   } catch (err) {
-    addLog(`❌ Failed to load ${language} dictionary. Check that words_${language}.json is in the same folder.`, 'error');
+    input.placeholder = `❌ Failed to load dictionary. Please refresh.`;
     console.error('Word bank load error:', err);
     return [];
   } finally {
@@ -1015,7 +1014,6 @@ window.addEventListener('load', async () => {
   updateButtonVisibility();
 
   // Load the default language word bank on startup
-  addLog('⏳ Loading dictionary...', 'info');
   currentWordList = await loadWordBank(currentLanguage);
 
   updateInputPlaceholder();
